@@ -2,7 +2,7 @@ import Foundation
 
 extension Quiz {
     static let samples: [Quiz] = {
-        let all = foundationQuizzes + practiceQuizzes + boot3PlatformQuizzes
+        let all = foundationQuizzes + practiceQuizzes + boot3PlatformQuizzes + errorReadingQuizzes
         var seenIds = Set<String>()
         return all
             .filter { seenIds.insert($0.id).inserted }
@@ -571,6 +571,355 @@ class UserController {
     ) -> Choice {
         Choice(id: id, text: text, correct: correct, misconception: misconception, explanation: explanation)
     }
+
+    // MARK: - エラー読解クイズ
+
+    private static let errorReadingQuizzes: [Quiz] = [
+
+        // ── 基礎 ──────────────────────────────────────────
+
+        quiz(
+            id: "boot3-error-port-in-use-001",
+            level: .foundation,
+            objective: "boot3-foundation-starter",
+            category: .errorReading,
+            tags: ["起動失敗", "ポート競合", "application.yml"],
+            code: """
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Web server failed to start. Port 8080 was already in use.
+
+Action:
+
+Identify and stop the process that's listening on port 8080
+or configure this application to listen on another port.
+""",
+            question: "このエラーの直接原因として正しいものはどれか？",
+            choices: [
+                choice("a", "別のプロセスがすでに8080番ポートを使用している", correct: true,
+                       explanation: "「Port 8080 was already in use」がそのままの意味です。Eclipse再起動後に前の実行が残っていたり、Tomcatが二重起動していることが多いです。`application.yml` で `server.port: 9090` などに変更するか、既存プロセスを終了します。"),
+                choice("b", "`@SpringBootApplication` が重複している", misconception: "起動アノテーションとポートを混同",
+                       explanation: "アノテーションの重複とポート競合は別の問題です。エラーメッセージに port という単語がある場合はポートを疑います。"),
+                choice("c", "JDBCドライバが見つからない", misconception: "DB接続エラーと混同",
+                       explanation: "JDBCエラーは `Failed to configure a DataSource` などで始まります。今回はWebサーバの起動失敗です。"),
+                choice("d", "`application.yml` の構文が壊れている", misconception: "設定ファイルエラーと混同",
+                       explanation: "YAMLの構文エラーは `Caused by: org.yaml.snakeyaml.scanner.ScannerException` が出ます。")
+            ],
+            explanationRef: "explain-boot3-error-port-in-use-001",
+            designIntent: "最も頻出の起動エラーをコンソールから即座に読み取る。"
+        ),
+
+        quiz(
+            id: "boot3-error-no-bean-found-001",
+            level: .foundation,
+            objective: "boot3-foundation-di",
+            category: .errorReading,
+            tags: ["UnsatisfiedDependencyException", "Bean未検出", "@Component"],
+            code: """
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Parameter 0 of constructor in
+  com.example.demo.UserService required a bean of type
+  'com.example.demo.UserRepository' that could not be found.
+
+Action:
+
+Consider defining a bean of type 'com.example.demo.UserRepository'
+in your configuration.
+""",
+            question: "このエラーを解消する最も直接的な対処として正しいものはどれか？",
+            choices: [
+                choice("a", "`UserRepository` インターフェースに `@Repository` を付けるか、`JpaRepository` を継承させる", correct: true,
+                       explanation: "`required a bean of type 'UserRepository' that could not be found` はSpringがそのBeanを管理していないことを意味します。`@Repository` や `JpaRepository` 継承でBeanとして登録します。"),
+                choice("b", "`UserService` を `static` クラスに変更する", misconception: "staticとBeanライフサイクルを混同",
+                       explanation: "staticにしてもDIの問題は解決しません。Beanとして登録することが必要です。"),
+                choice("c", "`application.yml` に `spring.jpa.enabled=false` を追加する", misconception: "機能無効化で回避しようとする誤り",
+                       explanation: "JPAを無効化しても依存性の未解決は解決しません。"),
+                choice("d", "`UserService` のコンストラクタ引数を0個にする", misconception: "引数なしにすれば動くと誤解",
+                       explanation: "依存が必要なのに引数を消すとサービスが機能しなくなります。")
+            ],
+            explanationRef: "explain-boot3-error-no-bean-found-001",
+            designIntent: "DI失敗の定番エラーを読んで@Componentまたは継承で解決できるようにする。"
+        ),
+
+        quiz(
+            id: "boot3-error-no-unique-bean-001",
+            level: .foundation,
+            objective: "boot3-foundation-di",
+            category: .errorReading,
+            tags: ["NoUniqueBeanDefinitionException", "Bean競合", "@Primary", "@Qualifier"],
+            code: """
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Parameter 0 of constructor in com.example.demo.OrderService
+required a single bean, but 2 were found:
+  - jpaMemberRepository: defined in file [...JpaMemberRepository.class]
+  - mockMemberRepository: defined in file [...MockMemberRepository.class]
+
+Action:
+
+Consider marking one of the beans as @Primary, updating the
+consumer to accept multiple beans, or using @Qualifier to identify
+the bean that should be consumed.
+""",
+            question: "このエラーが示す問題と推奨される対処の組み合わせとして正しいものはどれか？",
+            choices: [
+                choice("a", "同一インターフェースにBean候補が2つあるため `@Primary` または `@Qualifier` で1つに絞る", correct: true,
+                       explanation: "`required a single bean, but 2 were found` がそのままの意味です。エラーメッセージ内の「Action」に解決策まで書かれています。本番用とモック用が両方Beanになっている典型パターンです。"),
+                choice("b", "Beanが1つも見つからないため `@Component` を追加する", misconception: "Bean未検出エラーと混同",
+                       explanation: "このエラーは多すぎる（2つ）が問題です。Bean未検出は `could not be found` というメッセージになります。"),
+                choice("c", "`OrderService` のコンストラクタを `@Autowired` なしにする", misconception: "DIを外せば解決すると誤解",
+                       explanation: "DIを外すと依存が解決されず、null参照になります。"),
+                choice("d", "`spring.main.allow-bean-definition-overriding=true` で強制的に片方を上書きする", misconception: "上書き許可で解決できると思い込む",
+                       explanation: "Bean上書きは定義の順序依存で意図しない動作になりやすく、推奨されません。")
+            ],
+            explanationRef: "explain-boot3-error-no-unique-bean-001",
+            designIntent: "Beanの競合エラーを読んで@Primary/@Qualifierによる解決策を導ける。"
+        ),
+
+        quiz(
+            id: "boot3-error-placeholder-001",
+            level: .foundation,
+            objective: "boot3-foundation-config",
+            category: .errorReading,
+            tags: ["Could not resolve placeholder", "application.yml", "@Value"],
+            code: """
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Could not resolve placeholder 'app.api-key' in value
+"${app.api-key}"
+
+Action:
+
+Ensure that 'app.api-key' is defined in your configuration.
+""",
+            question: "このエラーが起きる典型的な原因はどれか？",
+            choices: [
+                choice("a", "`application.yml` に `app.api-key` キーが定義されていないか、プロパティ名のタイポがある", correct: true,
+                       explanation: "`@Value(\"${app.api-key}\")` でSpringが値を注入しようとしたが、対応するキーがどのプロパティソースにも見つからない状態です。YAMLのインデントやケバブケース表記も確認します。"),
+                choice("b", "APIキーが短すぎてセキュリティ検証に失敗した", misconception: "Spring Securityの検証ロジックと混同",
+                       explanation: "このエラーはSpringがプロパティを解決できなかった段階で起きます。値の内容は関係ありません。"),
+                choice("c", "`@Component` を付け忘れた", misconception: "Bean未登録エラーと混同",
+                       explanation: "placeholder解決失敗はプロパティファイルの問題です。Beanの登録とは別です。"),
+                choice("d", "`application.yml` の代わりに `application.properties` が必要", misconception: "ファイル形式を変えれば解決すると誤解",
+                       explanation: "SpringはYAMLもpropertiesも読みます。どちらでもキーが存在しなければ同じエラーになります。")
+            ],
+            explanationRef: "explain-boot3-error-placeholder-001",
+            designIntent: "設定値の未定義エラーを読んでapplication.ymlのキー確認へ導ける。"
+        ),
+
+        quiz(
+            id: "boot3-error-null-di-001",
+            level: .foundation,
+            objective: "boot3-foundation-di",
+            category: .errorReading,
+            tags: ["NullPointerException", "フィールドインジェクション", "new演算子"],
+            code: """
+java.lang.NullPointerException: Cannot invoke
+  "com.example.demo.UserRepository.findById(Long)"
+  because "this.userRepository" is null
+
+  at com.example.demo.UserService.findUser(UserService.java:18)
+  at com.example.demo.UserController.getUser(UserController.java:25)
+""",
+            question: "スタックトレースからこのNullPointerExceptionの最も可能性が高い原因はどれか？",
+            choices: [
+                choice("a", "`UserService` を `new UserService()` で生成したためDIが機能せず `userRepository` が null", correct: true,
+                       explanation: "SpringのDIはSpringが管理するBeanにしか働きません。`new` で自前生成したインスタンスのフィールドにはインジェクションされず null のままになります。Controllerで `new UserService()` していないか確認します。"),
+                choice("b", "`UserRepository` に `@Repository` がない", misconception: "Bean未登録を原因と見誤る",
+                       explanation: "Beanが未登録なら起動時に `UnsatisfiedDependencyException` が出て起動失敗します。起動後のNPEとは別問題です。"),
+                choice("c", "`findById` の引数が null で渡された", misconception: "引数nullとフィールドnullを混同",
+                       explanation: "エラーメッセージは `this.userRepository` が null と言っています。引数の問題ではありません。"),
+                choice("d", "Spring Boot 3.xではフィールドインジェクションがデフォルトで無効", misconception: "バージョン変更でDI方式が廃止されたと誤解",
+                       explanation: "フィールドインジェクション自体は3.xでも動きます。ただし `new` での生成はどのバージョンでもDIが効きません。")
+            ],
+            explanationRef: "explain-boot3-error-null-di-001",
+            designIntent: "起動後NPEからDI未適用（new生成）を読み取れる。"
+        ),
+
+        // ── 実践 ──────────────────────────────────────────
+
+        quiz(
+            id: "boot3-error-lazy-init-001",
+            level: .practice,
+            objective: "boot3-practice-transaction",
+            category: .errorReading,
+            tags: ["LazyInitializationException", "@Transactional", "遅延ロード"],
+            code: """
+org.hibernate.LazyInitializationException:
+  failed to lazily initialize a collection of role:
+  com.example.demo.Order.items,
+  could not initialize proxy - no Session
+
+  at org.hibernate.proxy.AbstractLazyInitializer.initialize(...)
+  at com.example.demo.OrderService.getOrderItems(OrderService.java:34)
+""",
+            question: "このエラーの直接原因と修正方法の組み合わせとして正しいものはどれか？",
+            choices: [
+                choice("a", "Hibernateセッションが閉じた後で遅延ロードを試みている。`getOrderItems()` に `@Transactional` を付けてセッションを維持する", correct: true,
+                       explanation: "LAZY関連はHibernateセッション内でのみ初期化できます。セッションが閉じた後（トランザクション外）でアクセスするとこのエラーが出ます。メソッドに `@Transactional` を付けるとセッションが維持されます。"),
+                choice("b", "`Order` クラスに `@Entity` がないためDBから取得できない", misconception: "エンティティ定義エラーと混同",
+                       explanation: "@Entityがなければ起動時かクエリ実行時にエラーが出ます。LazyInitializationExceptionはエンティティは取得できているが関連の初期化に失敗しています。"),
+                choice("c", "`Order.items` の型を `List` から `Set` に変更する", misconception: "コレクション型を変えれば解決すると誤解",
+                       explanation: "コレクション型はセッション有無の問題と無関係です。"),
+                choice("d", "`spring.jpa.open-in-view=true` を設定する", misconception: "quick fixとして有効に見えるが設計上の問題",
+                       explanation: "open-in-view は応急措置として動くことがありますが、ビュー層にDBセッションを開放するアンチパターンです。正しくは `@Transactional` でサービス層でセッションを管理します。")
+            ],
+            explanationRef: "explain-boot3-error-lazy-init-001",
+            designIntent: "LazyInitializationExceptionから@Transactionalの必要性を逆引きできる。"
+        ),
+
+        quiz(
+            id: "boot3-error-data-integrity-001",
+            level: .practice,
+            objective: "boot3-practice-layered",
+            category: .errorReading,
+            tags: ["DataIntegrityViolationException", "Unique制約", "DB制約"],
+            code: """
+org.springframework.dao.DataIntegrityViolationException:
+  could not execute statement
+  [ERROR: duplicate key value violates unique constraint "users_email_key"
+   Detail: Key (email)=(test@example.com) already exists.]
+
+  at ...UserService.register(UserService.java:42)
+  at ...UserController.registerUser(UserController.java:31)
+""",
+            question: "このエラーから読み取れる状況と対処として正しいものはどれか？",
+            choices: [
+                choice("a", "DBのemail列にUNIQUE制約があり、同じメールアドレスが重複登録された。保存前にメールアドレスの存在確認を行う", correct: true,
+                       explanation: "`duplicate key value violates unique constraint` とDetailの `(email)=(...) already exists` から明確です。`UserRepository.existsByEmail()` などで事前チェックし、重複時は業務エラーとして400を返す設計が一般的です。"),
+                choice("b", "`@Email` アノテーションがDTOに付いていない", misconception: "バリデーションエラーと制約違反を混同",
+                       explanation: "バリデーション失敗は `MethodArgumentNotValidException` (HTTP 400)です。このエラーはDBレベルで起きた制約違反です。"),
+                choice("c", "HibernateがSQLを生成できないというエラー", misconception: "SQL生成失敗と混同",
+                       explanation: "SQL生成の問題であれば `HibernateException` や `SQLGrammarException` が出ます。このエラーはSQLは実行されたがDBが拒否した結果です。"),
+                choice("d", "`@Id` に `@GeneratedValue` が付いていない", misconception: "主キー生成の問題と混同",
+                       explanation: "主キーの生成問題ではなくemail列のUNIQUE制約の問題です。エラーの `users_email_key` という制約名が手がかりです。")
+            ],
+            explanationRef: "explain-boot3-error-data-integrity-001",
+            designIntent: "DB制約違反エラーを読んでサービス層での事前チェックに結びつける。"
+        ),
+
+        quiz(
+            id: "boot3-error-method-not-allowed-001",
+            level: .practice,
+            objective: "boot3-practice-layered",
+            category: .errorReading,
+            tags: ["405", "HttpRequestMethodNotSupportedException", "RequestMapping"],
+            code: """
+{
+  "timestamp": "2024-08-01T10:23:45.123+00:00",
+  "status": 405,
+  "error": "Method Not Allowed",
+  "path": "/api/users/42"
+}
+
+// Eclipseコンソール:
+o.s.web.servlet.DispatcherServlet:
+  Completed 405 METHOD_NOT_ALLOWED
+
+jakarta.servlet.ServletException:
+  Request method 'POST' not supported
+""",
+            question: "HTTP 405 Method Not Allowed のエラーが出た場合の最も可能性が高い原因はどれか？",
+            choices: [
+                choice("a", "エンドポイント `/api/users/42` は `GET` のみ受け付けるが、クライアントが `POST` でリクエストした", correct: true,
+                       explanation: "`Request method 'POST' not supported` がそのままの意味です。Controllerの `@GetMapping` に対して `POST` を送るとこうなります。ControllerのアノテーションとクライアントのHTTPメソッドを合わせます。"),
+                choice("b", "ユーザーID 42 がDBに存在しない", misconception: "404 Not Foundと混同",
+                       explanation: "リソースが存在しない場合は404です。405はリソースはあるがHTTPメソッドが違う場合です。"),
+                choice("c", "Spring Securityが認証されていないリクエストを拒否した", misconception: "401/403と混同",
+                       explanation: "認証・認可の失敗は401 Unauthorized または 403 Forbidden です。405はHTTPメソッドの不一致です。"),
+                choice("d", "`application.yml` の `server.port` 設定が誤っている", misconception: "ポート設定エラーと混同",
+                       explanation: "ポート設定の問題は接続自体が失敗します。405は接続には成功しているがメソッドが合っていない状態です。")
+            ],
+            explanationRef: "explain-boot3-error-method-not-allowed-001",
+            designIntent: "HTTPステータスコードとエラー文からリクエストの問題を特定できる。"
+        ),
+
+        quiz(
+            id: "boot3-error-validation-400-001",
+            level: .practice,
+            objective: "boot3-practice-validation",
+            category: .errorReading,
+            tags: ["400", "MethodArgumentNotValidException", "@Valid", "バリデーション"],
+            code: """
+{
+  "timestamp": "2024-08-01T11:05:22.456+00:00",
+  "status": 400,
+  "error": "Bad Request",
+  "path": "/api/users"
+}
+
+// Eclipseコンソール:
+o.s.w.s.m.m.a.MethodArgumentNotValidException:
+  Validation failed for argument [0] in
+  public ResponseEntity createUser(UserRequest):
+  [Field error in object 'userRequest' on field 'email':
+   rejected value [null]; codes [...NotBlank...];
+   default message [空白は許可されていません]]
+""",
+            question: "このエラーが発生している原因として正しいものはどれか？",
+            choices: [
+                choice("a", "リクエストJSONに `email` フィールドが含まれていないか null で、DTOに `@NotBlank` 等の制約がある", correct: true,
+                       explanation: "`Field error on field 'email': rejected value [null]` と `NotBlank` が証拠です。Controllerの引数に `@Valid` が付いており、DTOの `email` が null 不可なのにリクエストで渡されなかった状態です。"),
+                choice("b", "DBのemailカラムがNULL不可のためINSERTが失敗した", misconception: "DB制約違反と混同",
+                       explanation: "DB制約違反は `DataIntegrityViolationException` です。このエラーはDBに到達する前のバリデーション段階で止まっています。"),
+                choice("c", "`UserRequest` クラスに `@RequestBody` アノテーションがない", misconception: "バインディング失敗と混同",
+                       explanation: "`@RequestBody` がなければ `HttpMessageNotReadableException` が出ます。このエラーはバインディング後のバリデーション失敗です。"),
+                choice("d", "Spring Security が POST リクエストの CSRF トークンを検証した", misconception: "CSRFエラーと混同",
+                       explanation: "CSRFエラーは403 Forbiddenです。このエラーは400 Bad Requestでバリデーション失敗です。")
+            ],
+            explanationRef: "explain-boot3-error-validation-400-001",
+            designIntent: "バリデーション失敗のエラーログからDTOのフィールドとリクエストの不一致を特定できる。"
+        ),
+
+        quiz(
+            id: "boot3-error-transaction-required-001",
+            level: .practice,
+            objective: "boot3-practice-transaction",
+            category: .errorReading,
+            tags: ["TransactionRequiredException", "@Transactional", "書き込み操作"],
+            code: """
+jakarta.persistence.TransactionRequiredException:
+  Executing an update/delete query
+
+  at org.hibernate.query.sqm.internal.QuerySqmImpl
+    .verifyUpdateOrDeleteType(QuerySqmImpl.java:...)
+  at com.example.demo.UserRepository
+    .deactivateUser(UserRepository.java:12)
+  at com.example.demo.UserService
+    .deactivate(UserService.java:27)
+""",
+            question: "このエラーが発生する理由と修正方法として正しいものはどれか？",
+            choices: [
+                choice("a", "UPDATE/DELETE クエリをトランザクション外で実行しようとした。`deactivate()` メソッドに `@Transactional` を付ける", correct: true,
+                       explanation: "`Executing an update/delete query` と `TransactionRequiredException` がセットです。Hibernateは書き込み操作にトランザクションを必須とします。Repositoryのカスタムクエリを呼ぶサービスメソッドに `@Transactional` を付けます。"),
+                choice("b", "`@Query` アノテーションに `@Modifying` が付いていない", misconception: "部分的に正しいが根本原因ではない",
+                       explanation: "`@Modifying` も必要ですが、エラーメッセージの根本は `TransactionRequiredException` です。`@Transactional` なしでは `@Modifying` があっても同じエラーが出ます。"),
+                choice("c", "DB接続プールの上限に達してコネクションが取得できない", misconception: "コネクションプール枯渇と混同",
+                       explanation: "プール枯渇は `Unable to acquire JDBC Connection` などが出ます。このエラーはトランザクション管理の問題です。"),
+                choice("d", "`UserRepository` に `@Repository` が付いていない", misconception: "Bean未登録と混同",
+                       explanation: "Bean未登録なら起動時に失敗します。このエラーは実行時にトランザクションが存在しないというエラーです。")
+            ],
+            explanationRef: "explain-boot3-error-transaction-required-001",
+            designIntent: "書き込みクエリに@Transactionalが必要なことをエラーから逆引きできる。"
+        ),
+    ]
 
     static let layeredTraceCombinedCode = """
 // OrderController.java

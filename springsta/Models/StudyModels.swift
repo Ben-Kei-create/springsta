@@ -154,6 +154,22 @@ enum ExamObjectiveCatalog {
             title: "外部化設定、環境変数、コンテナ起動",
             priority: 2
         ),
+        ExamObjective(
+            id: "boot3-error-foundation",
+            version: .boot3,
+            level: .foundation,
+            category: .errorReading,
+            title: "起動エラー・DIエラー・設定エラーの読み方",
+            priority: 1
+        ),
+        ExamObjective(
+            id: "boot3-error-practice",
+            version: .boot3,
+            level: .practice,
+            category: .errorReading,
+            title: "実行時例外・DB制約・HTTPエラーの読み方",
+            priority: 1
+        ),
     ]
 
     static func objectives(for version: SpringBootVersion, level: SpringTrack) -> [ExamObjective] {

@@ -32,6 +32,7 @@ enum QuizCategory: String, Codable, CaseIterable {
     case observability = "observability"
     case deployment = "deployment"
     case architecture = "architecture"
+    case errorReading = "error-reading"
 
     var displayName: String {
         switch self {
@@ -47,6 +48,7 @@ enum QuizCategory: String, Codable, CaseIterable {
         case .observability: return "運用・監視"
         case .deployment: return "デプロイ"
         case .architecture: return "実践設計"
+        case .errorReading: return "エラー読解"
         }
     }
 
