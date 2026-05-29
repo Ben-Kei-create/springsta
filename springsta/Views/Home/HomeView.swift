@@ -52,7 +52,7 @@ struct HomeView: View {
                         .padding(.bottom, Spacing.lg)
                     }
 
-                    if !purchase.isPremium {
+                    if !purchase.effectiveIsPremium {
                         AdBannerView()
                     }
                 }

@@ -16,7 +16,7 @@ struct ContentView: View {
     enum Tab: Hashable { case learning, quiz }
 
     var body: some View {
-        if purchase.isPremium {
+        if purchase.effectiveIsPremium {
             // 課金済み: タブバー表示（学習・問題）
             TabView(selection: $selectedTab) {
                 LearningHomeView()

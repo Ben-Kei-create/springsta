@@ -24,17 +24,29 @@ final class PurchaseManager {
 
 #if DEBUG
     private init(isPremium: Bool) { self.isPremium = isPremium }
+
+    var debugForcePremium: Bool = UserDefaults.standard.bool(forKey: "debug.forcePremium") {
+        didSet { UserDefaults.standard.set(debugForcePremium, forKey: "debug.forcePremium") }
+    }
 #endif
 
     // MARK: - Accessors
 
+    var effectiveIsPremium: Bool {
+#if DEBUG
+        return debugForcePremium || isPremium
+#else
+        return isPremium
+#endif
+    }
+
     /// 実践トラックへのアクセス可否
     func canAccess(level: SpringTrack) -> Bool {
-        level == .foundation || isPremium
+        level == .foundation || effectiveIsPremium
     }
 
     /// 総合演習へのアクセス可否
-    var canAccessMockExam: Bool { isPremium }
+    var canAccessMockExam: Bool { effectiveIsPremium }
 
     // MARK: - Lifecycle
 

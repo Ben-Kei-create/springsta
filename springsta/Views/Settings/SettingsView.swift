@@ -142,18 +142,46 @@ struct SettingsView: View {
                     }
 
 #if DEBUG
-                    // MARK: 販売準備
-                    section(title: "販売準備") {
-                        NavigationLink {
-                            LaunchReadinessView()
-                        } label: {
-                            SettingNavigationRow(
-                                icon: "checklist.checked",
-                                title: "リリース品質チェック",
-                                value: launchReadinessSummary
-                            )
+                    // MARK: 販売準備 (DEBUG only)
+                    section(title: "開発者") {
+                        VStack(spacing: 0) {
+                            HStack(spacing: Spacing.sm) {
+                                Image(systemName: "crown.fill")
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(Color.jbWarning)
+                                    .frame(width: 24)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("プレミアム強制ON")
+                                        .font(.system(size: 15))
+                                        .foregroundStyle(Color.jbText)
+                                    Text("DEBUGビルドのみ。実践トラック・TabBar・広告非表示を確認")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(Color.jbSubtext)
+                                }
+                                Spacer()
+                                Toggle("", isOn: $store.debugForcePremium)
+                                    .labelsHidden()
+                                    .tint(Color.jbWarning)
+                            }
+                            .padding(.horizontal, Spacing.md)
+                            .padding(.vertical, 12)
+                            .background(Color.jbCard)
+
+                            Divider()
+                                .background(Color.jbBorder)
+                                .padding(.horizontal, Spacing.md)
+
+                            NavigationLink {
+                                LaunchReadinessView()
+                            } label: {
+                                SettingNavigationRow(
+                                    icon: "checklist.checked",
+                                    title: "リリース品質チェック",
+                                    value: launchReadinessSummary
+                                )
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
 #endif
 
