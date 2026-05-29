@@ -64,8 +64,8 @@ struct MockExamView: View {
                             level: session.level,
                             variant: variant
                         ),
-                        onReviewWrong: { startReview(quizzes: wrongQuizzes(for: attempt), title: "模擬試験の間違い直し") },
-                        onReviewAll: { startReview(quizzes: session.quizzes, title: "模擬試験の全問復習") },
+                        onReviewWrong: { startReview(quizzes: wrongQuizzes(for: attempt), title: "総合演習の間違い直し") },
+                        onReviewAll: { startReview(quizzes: session.quizzes, title: "総合演習の全問復習") },
                         onClose: { dismiss() }
                     )
                 } else {
@@ -74,12 +74,12 @@ struct MockExamView: View {
                     }
                 }
             }
-            .navigationTitle(submittedAttempt == nil ? variant.displayName : "模擬試験サマリー")
+            .navigationTitle(submittedAttempt == nil ? variant.displayName : "総合演習サマリー")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbarContent }
         }
         .interactiveDismissDisabled(submittedAttempt == nil)
-        .alert("模擬試験を中断しますか？", isPresented: $showExitAlert) {
+        .alert("総合演習を中断しますか？", isPresented: $showExitAlert) {
             Button("続ける", role: .cancel) {}
             Button("中断して閉じる", role: .destructive) {
                 dismiss()
@@ -292,7 +292,7 @@ struct MockExamView: View {
         if unanswered > 0 {
             return "未回答が \(unanswered) 問あります。未回答は不正解として採点されます。"
         }
-        return "提出後に採点し、模擬試験履歴として保存します。"
+        return "提出後に採点し、総合演習履歴として保存します。"
     }
 
     private func shouldUseSplitLayout(_ size: CGSize) -> Bool {
@@ -437,7 +437,7 @@ private struct MockExamStatusBar: View {
 
             HStack(spacing: Spacing.sm) {
                 statusPill("回答済み", "\(answeredCount)/\(totalCount)")
-                statusPill("合格基準", "\(passingScorePercent)%")
+                statusPill("クリア基準", "\(passingScorePercent)%")
                 statusPill("残り", "\(max(totalCount - answeredCount, 0))問")
             }
         }
@@ -524,7 +524,7 @@ private struct MockExamChoiceButton: View {
         }
         .buttonStyle(.plain)
         .animation(.snappy(duration: 0.18, extraBounce: 0.02), value: isSelected)
-        .accessibilityLabel("模試選択肢 \(choice.id): \(choice.text)")
+        .accessibilityLabel("演習選択肢 \(choice.id): \(choice.text)")
         .accessibilityIdentifier("mock-choice-\(choice.id)")
     }
 }
@@ -567,7 +567,7 @@ private struct MockExamResultView: View {
         }
         .navigationBarBackButtonHidden(true)
         .onAppear {
-            // 模擬試験合格時にレビューを依頼（最も達成感が高いタイミング）
+            // 総合演習クリア時にレビューを依頼（最も達成感が高いタイミング）
             if attempt.isPassing {
                 Task { @MainActor in
                     try? await Task.sleep(for: .seconds(1.5))
@@ -587,7 +587,7 @@ private struct MockExamResultView: View {
                 LevelBadgeView(level: session.level)
             }
 
-            Text(attempt.isPassing ? "合格ゾーン" : "もう少しで合格ゾーン")
+            Text(attempt.isPassing ? "クリアライン" : "もう少しでクリアライン")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(Color.jbText)
 
@@ -630,7 +630,7 @@ private struct MockExamResultView: View {
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(Color.jbText)
                 Spacer()
-                Text("\(passCount)/\(history.count) 合格 ・ Best \(bestScore)%")
+                Text("\(passCount)/\(history.count) クリア ・ Best \(bestScore)%")
                     .font(.system(size: 11, weight: .semibold).monospacedDigit())
                     .foregroundStyle(Color.jbSubtext)
             }
@@ -652,7 +652,7 @@ private struct MockExamResultView: View {
                         .foregroundStyle(point.isPassing ? Color.jbSuccess : Color.jbWarning)
                     }
 
-                    RuleMark(y: .value("合格基準", attempt.passingScorePercent))
+                    RuleMark(y: .value("クリア基準", attempt.passingScorePercent))
                         .foregroundStyle(Color.jbSubtext.opacity(0.45))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
                 }
@@ -677,7 +677,7 @@ private struct MockExamResultView: View {
                         Text("\(item.scorePercent)%")
                             .font(.system(size: 12, weight: .bold).monospacedDigit())
                             .foregroundStyle(item.isPassing ? Color.jbSuccess : Color.jbWarning)
-                        Text(item.isPassing ? "合格" : "未達")
+                        Text(item.isPassing ? "クリア" : "未達")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(item.isPassing ? Color.jbSuccess : Color.jbWarning)
                     }
@@ -731,7 +731,7 @@ private struct MockExamResultView: View {
             }
 
             ShareLink(
-                item: JavastaShare.mockExamResult(
+                item: SpringstaShare.mockExamResult(
                     level: session.level,
                     version: session.version,
                     variant: attempt.variant,

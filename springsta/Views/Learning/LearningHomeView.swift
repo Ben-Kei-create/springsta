@@ -7,13 +7,13 @@ struct LearningHomeView: View {
     @State private var progress = ProgressStore.shared
     @State private var store = PurchaseManager.shared
     @State private var showPaywall = false
-    @AppStorage("selectedJavaLevel") private var selectedLevelRaw = JavaLevel.silver.rawValue
+    @AppStorage("selectedSpringTrack") private var selectedLevelRaw = SpringTrack.foundation.rawValue
     @AppStorage("spotlight.pendingTermId") private var pendingTermId: String = ""
     @AppStorage("spotlight.pendingLessonId") private var pendingLessonId: String = ""
     @State private var navigationPath = NavigationPath()
 
-    private var selectedLevel: JavaLevel {
-        JavaLevel(rawValue: selectedLevelRaw) ?? .silver
+    private var selectedLevel: SpringTrack {
+        SpringTrack(rawValue: selectedLevelRaw) ?? .foundation
     }
 
     var body: some View {
@@ -93,7 +93,7 @@ struct LearningHomeView: View {
             Text("学習")
                 .font(.system(size: 30, weight: .bold))
                 .foregroundStyle(Color.jbText)
-            Text("教科書 → 問題 で確実に身につける")
+            Text("Spring Boot 3.x前提。教科書 → 問題で確実に身につける")
                 .font(.system(size: 14))
                 .foregroundStyle(Color.jbSubtext)
         }
@@ -144,7 +144,7 @@ struct LearningHomeView: View {
 
     private var levelPicker: some View {
         HStack(spacing: Spacing.xs) {
-            ForEach(JavaLevel.allCases, id: \.self) { level in
+            ForEach(SpringTrack.allCases, id: \.self) { level in
                 let locked = !store.canAccess(level: level)
                 Button(action: {
                     if locked {
@@ -160,7 +160,7 @@ struct LearningHomeView: View {
                             Image(systemName: "lock.fill")
                                 .font(.system(size: 10, weight: .bold))
                         }
-                        Text(level.displayName.replacingOccurrences(of: "Java ", with: ""))
+                        Text(level.displayName)
                             .font(.system(size: 13, weight: .bold))
                     }
                     .foregroundStyle(selectedLevel == level ? .white : (locked ? Color.jbSubtext.opacity(0.5) : Color.jbSubtext))
@@ -183,7 +183,7 @@ struct LearningHomeView: View {
 
     // MARK: Level section
 
-    private func levelSection(level: JavaLevel) -> some View {
+    private func levelSection(level: SpringTrack) -> some View {
         let lessons = Lesson.samples.filter { $0.level == level }
         let completedCount = lessons.filter { progress.completedLessons.contains($0.id) }.count
         let total = lessons.count
@@ -208,22 +208,22 @@ struct LearningHomeView: View {
     }
 
     private func levelContextCard(
-        for level: JavaLevel,
+        for level: SpringTrack,
         completed: Int,
         total: Int,
         progress: Double
     ) -> some View {
         let (icon, audience, detail, tint): (String, String, String, Color) = {
             switch level {
-            case .silver:
+            case .foundation:
                 return ("graduationcap.fill",
-                        "Java初学者向け",
-                        "オブジェクト指向・例外・コレクションなど、Silver試験に必要な基礎を体系的に学べます。",
+                        "Spring Bootを基礎から学ぶ方向け",
+                        "起動・DI・Web API・設定・JPAまで、シンプルなコードの動きを追いながら土台を固めます。",
                         Color.jbSuccess)
-            case .gold:
+            case .practice:
                 return ("briefcase.fill",
-                        "Silver取得者・Javaエンジニア向け",
-                        "ラムダ・Stream API・並行処理・モジュールなど、実務と試験で問われる応用知識を扱います。",
+                        "実務でSpring Bootを使う方向け",
+                        "Controller、Service、Repositoryを跨いで値が渡る流れと、設計・テスト・運用まで扱います。",
                         Color.jbAccent)
             }
         }()

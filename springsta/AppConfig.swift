@@ -3,7 +3,7 @@ import Foundation
 /// App-wide constants for App Store submission and external links.
 ///
 /// Centralises every string that would otherwise be scattered across
-/// `SettingsView`, `QuizView`, `JavastaShare`, etc.  Update the values
+/// `SettingsView`, `QuizView`, `SpringstaShare`, etc.  Update the values
 /// here once and every call-site benefits automatically.
 enum AppConfig {
     // MARK: - Contact / Support
@@ -27,8 +27,8 @@ enum AppConfig {
 
     /// Public-facing privacy policy URL.
     /// Host a Markdown / HTML page (e.g. GitHub Pages) before submitting to the store.
-    static let privacyPolicyURL = URL(string: "https://ben-kei-create.github.io/javasta/privacy.html")!
+    static let privacyPolicyURL = URL(string: "https://ben-kei-create.github.io/springsta/privacy.html")!
 
     /// App support page URL — shown in App Store listing and required by Apple.
-    static let supportURL = URL(string: "https://ben-kei-create.github.io/javasta/support.html")!
+    static let supportURL = URL(string: "https://ben-kei-create.github.io/springsta/support.html")!
 }

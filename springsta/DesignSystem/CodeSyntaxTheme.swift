@@ -45,27 +45,27 @@ enum CodeSyntaxTheme: String, CaseIterable, Identifiable {
                 method: .jbSyntaxMethod,
                 comment: .jbSyntaxComment,
                 number: .jbSyntaxNumber,
-                plain: .jbText
+                plain: Color(hex: "D7E7F8")
             )
         case .ocean:
             return CodeSyntaxPalette(
-                keyword: Color(hex: "82AAFF"),
-                string: Color(hex: "C3E88D"),
-                type: Color(hex: "FFCB6B"),
-                method: Color(hex: "89DDFF"),
-                comment: Color(hex: "697098"),
-                number: Color(hex: "F78C6C"),
-                plain: .jbText
+                keyword: Color(hex: "7DD3FC"),
+                string: Color(hex: "BAE6FD"),
+                type: Color(hex: "5EEAD4"),
+                method: Color(hex: "93C5FD"),
+                comment: Color(hex: "7F9CB8"),
+                number: Color(hex: "C4B5FD"),
+                plain: Color(hex: "D7E7F8")
             )
         case .forest:
             return CodeSyntaxPalette(
-                keyword: Color(hex: "8BE9A8"),
-                string: Color(hex: "F4D35E"),
-                type: Color(hex: "7DD3FC"),
-                method: Color(hex: "FFB86C"),
-                comment: Color(hex: "7D8B75"),
-                number: Color(hex: "CBA6F7"),
-                plain: .jbText
+                keyword: Color(hex: "86EFAC"),
+                string: Color(hex: "A7F3D0"),
+                type: Color(hex: "67E8F9"),
+                method: Color(hex: "BFDBFE"),
+                comment: Color(hex: "8EABC7"),
+                number: Color(hex: "DDD6FE"),
+                plain: Color(hex: "D7E7F8")
             )
         }
     }

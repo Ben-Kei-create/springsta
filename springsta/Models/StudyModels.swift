@@ -1,24 +1,18 @@
 import Foundation
 
-enum JavaExamVersion: String, Codable, CaseIterable, Identifiable {
-    case se17 = "se17"
-    case se11 = "se11"
+enum SpringBootVersion: String, Codable, CaseIterable, Identifiable {
+    case boot3 = "boot3"
 
     var id: String { rawValue }
 
     var displayName: String {
-        switch self {
-        case .se17: return "Java SE 17"
-        case .se11: return "Java SE 11"
-        }
+        "Spring Boot 3.x"
     }
 
-    func examCode(for level: JavaLevel) -> String {
-        switch (self, level) {
-        case (.se17, .silver): return "1Z0-825-JPN"
-        case (.se17, .gold): return "1Z0-826-JPN"
-        case (.se11, .silver): return "1Z0-815-JPN"
-        case (.se11, .gold): return "1Z0-816-JPN"
+    func examCode(for level: SpringTrack) -> String {
+        switch level {
+        case .foundation: return "Spring Boot 3.x 基礎"
+        case .practice: return "Spring Boot 3.x 実践"
         }
     }
 }
@@ -33,8 +27,8 @@ enum QuizDifficulty: String, Codable, CaseIterable {
         switch self {
         case .foundation: return "基礎"
         case .standard: return "標準"
-        case .tricky: return "ひっかけ"
-        case .exam: return "本番"
+        case .tricky: return "実務注意"
+        case .exam: return "総合"
         }
     }
 }
@@ -47,7 +41,7 @@ enum QuizReviewStatus: String, Codable {
     var displayName: String {
         switch self {
         case .draft: return "下書き"
-        case .verified: return "検証済み"
+        case .verified: return "確認済み"
         case .needsReview: return "要確認"
         }
     }
@@ -55,8 +49,8 @@ enum QuizReviewStatus: String, Codable {
 
 struct ExamObjective: Identifiable, Hashable {
     let id: String
-    let version: JavaExamVersion
-    let level: JavaLevel
+    let version: SpringBootVersion
+    let level: SpringTrack
     let category: QuizCategory
     let title: String
     let priority: Int
@@ -65,286 +59,125 @@ struct ExamObjective: Identifiable, Hashable {
 enum ExamObjectiveCatalog {
     static let all: [ExamObjective] = [
         ExamObjective(
-            id: "se17-silver-program",
-            version: .se17,
-            level: .silver,
-            category: .javaBasics,
-            title: "Javaの概要と簡単なJavaプログラム",
+            id: "boot3-foundation-starter",
+            version: .boot3,
+            level: .foundation,
+            category: .bootBasics,
+            title: "スターター、起動クラス、自動設定",
             priority: 1
         ),
         ExamObjective(
-            id: "se17-silver-data-string",
-            version: .se17,
-            level: .silver,
-            category: .dataTypes,
-            title: "基本データ型・文字列・配列・ArrayList",
+            id: "boot3-foundation-di",
+            version: .boot3,
+            level: .foundation,
+            category: .dependencyInjection,
+            title: "Bean定義、コンストラクタインジェクション、スコープ",
             priority: 1
         ),
         ExamObjective(
-            id: "se17-silver-control",
-            version: .se17,
-            level: .silver,
-            category: .controlFlow,
-            title: "演算子と制御構造",
+            id: "boot3-foundation-web",
+            version: .boot3,
+            level: .foundation,
+            category: .webMvc,
+            title: "Controller、RequestMapping、JSONレスポンス",
             priority: 1
         ),
         ExamObjective(
-            id: "se17-silver-class",
-            version: .se17,
-            level: .silver,
-            category: .classes,
-            title: "クラス・メソッド・コンストラクタ",
+            id: "boot3-foundation-config",
+            version: .boot3,
+            level: .foundation,
+            category: .configuration,
+            title: "application.yml、プロファイル、ConfigurationProperties",
             priority: 1
         ),
         ExamObjective(
-            id: "se17-silver-inheritance",
-            version: .se17,
-            level: .silver,
-            category: .inheritance,
-            title: "継承とインタフェース",
-            priority: 1
-        ),
-        ExamObjective(
-            id: "se17-silver-exception",
-            version: .se17,
-            level: .silver,
-            category: .exceptionHandling,
-            title: "例外処理",
-            priority: 1
-        ),
-        ExamObjective(
-            id: "se17-gold-collections",
-            version: .se17,
-            level: .gold,
-            category: .collections,
-            title: "コレクションとジェネリクス",
-            priority: 1
-        ),
-        ExamObjective(
-            id: "se17-gold-lambda",
-            version: .se17,
-            level: .gold,
-            category: .lambdaStreams,
-            title: "関数型インタフェースとラムダ式",
-            priority: 1
-        ),
-        ExamObjective(
-            id: "se17-gold-stream",
-            version: .se17,
-            level: .gold,
-            category: .lambdaStreams,
-            title: "Java Stream API",
-            priority: 1
-        ),
-        ExamObjective(
-            id: "se17-gold-module",
-            version: .se17,
-            level: .gold,
-            category: .moduleSystem,
-            title: "Javaモジュール・システム",
+            id: "boot3-foundation-data",
+            version: .boot3,
+            level: .foundation,
+            category: .dataJpa,
+            title: "Repository、Entity、クエリメソッド",
             priority: 2
         ),
         ExamObjective(
-            id: "se17-gold-concurrency",
-            version: .se17,
-            level: .gold,
-            category: .concurrency,
-            title: "並列処理",
+            id: "boot3-foundation-test",
+            version: .boot3,
+            level: .foundation,
+            category: .testing,
+            title: "Spring Boot Testとスライステスト",
             priority: 2
         ),
         ExamObjective(
-            id: "se17-gold-io",
-            version: .se17,
-            level: .gold,
-            category: .io,
-            title: "ファイルI/O",
+            id: "boot3-practice-layered",
+            version: .boot3,
+            level: .practice,
+            category: .architecture,
+            title: "Controller → Service → Repositoryの責務分離",
+            priority: 1
+        ),
+        ExamObjective(
+            id: "boot3-practice-transaction",
+            version: .boot3,
+            level: .practice,
+            category: .transactions,
+            title: "トランザクション境界とロールバック",
+            priority: 1
+        ),
+        ExamObjective(
+            id: "boot3-practice-security",
+            version: .boot3,
+            level: .practice,
+            category: .security,
+            title: "SecurityFilterChain、認可、CSRF",
+            priority: 1
+        ),
+        ExamObjective(
+            id: "boot3-practice-validation",
+            version: .boot3,
+            level: .practice,
+            category: .validation,
+            title: "DTOバリデーションとエラーハンドリング",
+            priority: 1
+        ),
+        ExamObjective(
+            id: "boot3-practice-observability",
+            version: .boot3,
+            level: .practice,
+            category: .observability,
+            title: "Actuator、ヘルスチェック、メトリクス",
             priority: 2
         ),
         ExamObjective(
-            id: "se17-gold-jdbc",
-            version: .se17,
-            level: .gold,
-            category: .jdbc,
-            title: "JDBC",
-            priority: 3
-        ),
-        ExamObjective(
-            id: "se17-gold-date-time",
-            version: .se17,
-            level: .gold,
-            category: .dateTime,
-            title: "日付・時刻API",
-            priority: 3
-        ),
-        ExamObjective(
-            id: "se17-gold-localization",
-            version: .se17,
-            level: .gold,
-            category: .localization,
-            title: "ローカライズ",
-            priority: 3
-        ),
-        ExamObjective(
-            id: "se11-gold-java-basics",
-            version: .se11,
-            level: .gold,
-            category: .javaBasics,
-            title: "Javaの基礎",
-            priority: 1
-        ),
-        ExamObjective(
-            id: "se11-gold-exception-assertion",
-            version: .se11,
-            level: .gold,
-            category: .exceptionHandling,
-            title: "例外処理とアサーション",
-            priority: 1
-        ),
-        ExamObjective(
-            id: "se11-gold-interfaces",
-            version: .se11,
-            level: .gold,
-            category: .classes,
-            title: "Javaのインタフェース",
-            priority: 1
-        ),
-        ExamObjective(
-            id: "se11-gold-generics-collections",
-            version: .se11,
-            level: .gold,
-            category: .collections,
-            title: "汎用とコレクション",
-            priority: 1
-        ),
-        ExamObjective(
-            id: "se11-gold-functional-lambda",
-            version: .se11,
-            level: .gold,
-            category: .lambdaStreams,
-            title: "関数型インタフェースとラムダ式",
-            priority: 1
-        ),
-        ExamObjective(
-            id: "se11-gold-stream-api",
-            version: .se11,
-            level: .gold,
-            category: .lambdaStreams,
-            title: "JavaストリームAPI",
-            priority: 1
-        ),
-        ExamObjective(
-            id: "se11-gold-builtin-functional",
-            version: .se11,
-            level: .gold,
-            category: .lambdaStreams,
-            title: "組込み関数型インタフェース",
-            priority: 1
-        ),
-        ExamObjective(
-            id: "se11-gold-stream-operations",
-            version: .se11,
-            level: .gold,
-            category: .lambdaStreams,
-            title: "ストリームに対するラムダ演算",
-            priority: 1
-        ),
-        ExamObjective(
-            id: "se11-gold-module-migration",
-            version: .se11,
-            level: .gold,
-            category: .moduleSystem,
-            title: "モジュール型アプリケーションに移行する",
+            id: "boot3-practice-deployment",
+            version: .boot3,
+            level: .practice,
+            category: .deployment,
+            title: "外部化設定、環境変数、コンテナ起動",
             priority: 2
-        ),
-        ExamObjective(
-            id: "se11-gold-module-services",
-            version: .se11,
-            level: .gold,
-            category: .moduleSystem,
-            title: "モジュール型アプリケーションにおけるサービス",
-            priority: 2
-        ),
-        ExamObjective(
-            id: "se11-gold-concurrency",
-            version: .se11,
-            level: .gold,
-            category: .concurrency,
-            title: "並列処理",
-            priority: 2
-        ),
-        ExamObjective(
-            id: "se11-gold-parallel-streams",
-            version: .se11,
-            level: .gold,
-            category: .lambdaStreams,
-            title: "並列ストリーム",
-            priority: 2
-        ),
-        ExamObjective(
-            id: "se11-gold-io-nio",
-            version: .se11,
-            level: .gold,
-            category: .io,
-            title: "I/O（基本およびNIO2）",
-            priority: 2
-        ),
-        ExamObjective(
-            id: "se11-gold-secure-coding",
-            version: .se11,
-            level: .gold,
-            category: .secureCoding,
-            title: "Java SEアプリケーションにおけるセキュア・コーディング",
-            priority: 3
-        ),
-        ExamObjective(
-            id: "se11-gold-jdbc",
-            version: .se11,
-            level: .gold,
-            category: .jdbc,
-            title: "JDBCによるデータベース・アプリケーション",
-            priority: 3
-        ),
-        ExamObjective(
-            id: "se11-gold-localization",
-            version: .se11,
-            level: .gold,
-            category: .localization,
-            title: "ローカライズ",
-            priority: 3
-        ),
-        ExamObjective(
-            id: "se11-gold-annotations",
-            version: .se11,
-            level: .gold,
-            category: .annotations,
-            title: "アノテーション",
-            priority: 3
         ),
     ]
 
-    // (version, level) ペアごとにキャッシュ。filter+sort を毎回実行しない
-    private static let objectivesCache: [String: [ExamObjective]] = {
-        var cache: [String: [ExamObjective]] = [:]
-        for version in JavaExamVersion.allCases {
-            for level in JavaLevel.allCases {
-                let key = "\(version.rawValue)-\(level.rawValue)"
-                cache[key] = all
-                    .filter { $0.version == version && $0.level == level }
-                    .sorted {
-                        if $0.priority == $1.priority { return $0.title < $1.title }
-                        return $0.priority < $1.priority
-                    }
+    static func objectives(for version: SpringBootVersion, level: SpringTrack) -> [ExamObjective] {
+        let exact = all
+            .filter { $0.version == version && $0.level == level }
+            .sorted { lhs, rhs in
+                if lhs.priority == rhs.priority { return lhs.title < rhs.title }
+                return lhs.priority < rhs.priority
             }
-        }
-        return cache
-    }()
 
-    static func objectives(for version: JavaExamVersion, level: JavaLevel) -> [ExamObjective] {
-        objectivesCache["\(version.rawValue)-\(level.rawValue)"] ?? []
+        if !exact.isEmpty {
+            return exact
+        }
+
+        return all
+            .filter { $0.version == .boot3 && $0.level == level }
+            .sorted { lhs, rhs in
+                if lhs.priority == rhs.priority { return lhs.title < rhs.title }
+                return lhs.priority < rhs.priority
+            }
     }
 }
 
-enum QuizPracticeMode: String, CaseIterable, Identifiable {
+enum QuizPracticeMode: String, Codable, CaseIterable, Identifiable {
     case single
     case daily
     case weak
@@ -353,44 +186,67 @@ enum QuizPracticeMode: String, CaseIterable, Identifiable {
     case mockExam
     case bookmarks
 
-    static let allCases: [QuizPracticeMode] = [.daily, .weak, .mistakes, .unattempted, .mockExam]
-    static let homeModes: [QuizPracticeMode] = [.daily, .unattempted, .mockExam]
-
     var id: String { rawValue }
 
-    var title: String {
+    static let homeModes: [QuizPracticeMode] = [
+        .daily,
+        .weak,
+        .mistakes,
+        .unattempted,
+        .mockExam
+    ]
+
+    var displayName: String {
         switch self {
-        case .single: return "単問チャレンジ"
-        case .daily: return "ランダム10問"
-        case .weak: return "苦手克服"
-        case .mistakes: return "ミスだけ復習"
-        case .unattempted: return "未回答から"
-        case .mockExam: return "模擬試験"
-        case .bookmarks: return "保存済み"
+        case .single: return "1問練習"
+        case .daily: return "デイリー"
+        case .weak: return "弱点克服"
+        case .mistakes: return "間違い復習"
+        case .unattempted: return "未学習"
+        case .mockExam: return "総合演習"
+        case .bookmarks: return "ブックマーク"
         }
+    }
+
+    var title: String {
+        displayName
     }
 
     var subtitle: String {
         switch self {
-        case .single: return "選んだ問題を解く"
-        case .daily: return "毎回シャッフルして解く"
-        case .weak: return "正答率が低いタグを優先"
-        case .mistakes: return "間違えた問題を再挑戦"
-        case .unattempted: return "新しい問題だけ進める"
-        case .mockExam: return "最後に合格ゾーンを判定"
-        case .bookmarks: return "保存した問題をまとめて解く"
+        case .single:
+            return "選んだ1問を確認"
+        case .daily:
+            return "今日のSpring Boot演習"
+        case .weak:
+            return "苦手タグを重点確認"
+        case .mistakes:
+            return "間違えた問題を再確認"
+        case .unattempted:
+            return "未学習の範囲を進める"
+        case .mockExam:
+            return "基礎から実践まで通し演習"
+        case .bookmarks:
+            return "保存した問題だけ復習"
         }
     }
 
     var icon: String {
         switch self {
-        case .single: return "pencil.and.list.clipboard"
-        case .daily: return "sparkles"
-        case .weak: return "target"
-        case .mistakes: return "arrow.counterclockwise"
-        case .unattempted: return "circle.dashed"
-        case .mockExam: return "graduationcap.fill"
-        case .bookmarks: return "bookmark.fill"
+        case .single:
+            return "1.circle.fill"
+        case .daily:
+            return "calendar.badge.clock"
+        case .weak:
+            return "target"
+        case .mistakes:
+            return "arrow.counterclockwise"
+        case .unattempted:
+            return "tray.full"
+        case .mockExam:
+            return "list.bullet.clipboard"
+        case .bookmarks:
+            return "bookmark.fill"
         }
     }
 
@@ -398,11 +254,8 @@ enum QuizPracticeMode: String, CaseIterable, Identifiable {
         switch self {
         case .single: return 1
         case .daily: return 10
-        case .weak: return 10
-        case .mistakes: return 10
-        case .unattempted: return 10
-        case .mockExam: return 60
-        case .bookmarks: return Int.max  // 全件
+        case .weak, .mistakes, .unattempted, .bookmarks: return 12
+        case .mockExam: return 30
         }
     }
 }
@@ -410,35 +263,27 @@ enum QuizPracticeMode: String, CaseIterable, Identifiable {
 struct QuizSession: Identifiable {
     let id = UUID()
     let mode: QuizPracticeMode
-    let level: JavaLevel
-    let version: JavaExamVersion
+    let level: SpringTrack
+    let version: SpringBootVersion
     let quizzes: [Quiz]
     var customTitle: String? = nil
     var mockExamVariant: MockExamVariant? = nil
 
-    var title: String { customTitle ?? mode.title }
-    var subtitle: String { "\(level.displayName) / \(version.displayName)" }
-    var icon: String { mode.icon }
-
-    static func single(_ quiz: Quiz) -> QuizSession {
-        QuizSession(
-            mode: .single,
-            level: quiz.level,
-            version: quiz.examVersion,
-            quizzes: [quiz],
-            customTitle: "単問チャレンジ"
-        )
+    var title: String {
+        customTitle ?? mode.displayName
     }
 
-    static func bookmarks(_ quizzes: [Quiz]) -> QuizSession {
-        // ブックマーク問題は混在レベルの可能性があるため、先頭問題のメタを使う
-        let first = quizzes.first
-        return QuizSession(
+    static func single(_ quiz: Quiz) -> QuizSession {
+        QuizSession(mode: .single, level: quiz.level, version: quiz.examVersion, quizzes: [quiz])
+    }
+
+    static func bookmarks(_ quizzes: [Quiz], level: SpringTrack, version: SpringBootVersion) -> QuizSession {
+        QuizSession(
             mode: .bookmarks,
-            level: first?.level ?? .silver,
-            version: first?.examVersion ?? .se17,
+            level: level,
+            version: version,
             quizzes: quizzes,
-            customTitle: "保存済み \(quizzes.count)問"
+            customTitle: "ブックマーク"
         )
     }
 }
@@ -446,7 +291,7 @@ struct QuizSession: Identifiable {
 struct QuizAnswerRecord: Codable, Identifiable, Equatable {
     let id: UUID
     let quizId: String
-    let level: JavaLevel
+    let level: SpringTrack
     let category: String
     let tags: [String]
     let selectedChoiceId: String
@@ -457,7 +302,7 @@ struct QuizAnswerRecord: Codable, Identifiable, Equatable {
     init(
         id: UUID = UUID(),
         quizId: String,
-        level: JavaLevel,
+        level: SpringTrack,
         category: String,
         tags: [String],
         selectedChoiceId: String,
@@ -500,6 +345,7 @@ struct WeakTagSummary: Identifiable, Hashable {
     let misses: Int
 
     var id: String { tag }
+
     var missRate: Double {
         guard attempts > 0 else { return 0 }
         return Double(misses) / Double(attempts)

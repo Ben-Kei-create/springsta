@@ -25,7 +25,7 @@ struct ExplanationAuditIssue: Identifiable {
     let kind: Kind
     let quizId: String?
     let explanationRef: String
-    let level: JavaLevel?
+    let level: SpringTrack?
     let category: String?
     let question: String?
     let detail: String
@@ -36,7 +36,7 @@ struct ExplanationAuditIssue: Identifiable {
 }
 
 struct QuestionCategoryDistribution: Identifiable {
-    let level: JavaLevel
+    let level: SpringTrack
     let category: QuizCategory
     let practiceCount: Int
     let mockOnlyCount: Int
@@ -81,7 +81,7 @@ enum QuestionBank {
         Quiz.samples.filter { !$0.isMockExamOnly }
 
     static let mockExamOnlyQuizzes: [Quiz] =
-        QuizExpansion.mockExamOnlyExpansion.map { $0.contextualizedForPresentation() }
+        Quiz.mockExamOnlySamples.map { $0.contextualizedForPresentation() }
 
     static let allQuizzes: [Quiz] = deduplicated(practiceQuizzes + mockExamOnlyQuizzes)
 
@@ -96,8 +96,8 @@ enum QuestionBank {
     }
 
     static func quizzes(
-        version: JavaExamVersion = .se17,
-        level: JavaLevel? = nil,
+        version: SpringBootVersion = .boot3,
+        level: SpringTrack? = nil,
         category: QuizCategory? = nil
     ) -> [Quiz] {
         self.practiceQuizzes.filter { quiz in
@@ -107,15 +107,15 @@ enum QuestionBank {
         }
     }
 
-    static func mockExamEligibleCount(version: JavaExamVersion, level: JavaLevel) -> Int {
+    static func mockExamEligibleCount(version: SpringBootVersion, level: SpringTrack) -> Int {
         mockExamPool(version: version, level: level).count
     }
 
     @MainActor
     static func makeSession(
         mode: QuizPracticeMode,
-        version: JavaExamVersion,
-        level: JavaLevel,
+        version: SpringBootVersion,
+        level: SpringTrack,
         progress: ProgressStore
     ) -> QuizSession? {
         if mode == .mockExam {
@@ -151,8 +151,8 @@ enum QuestionBank {
 
     static func makeMockExamSession(
         variant: MockExamVariant,
-        version: JavaExamVersion,
-        level: JavaLevel
+        version: SpringBootVersion,
+        level: SpringTrack
     ) -> QuizSession? {
         let pool = mockExamPool(version: version, level: level)
         guard !pool.isEmpty else { return nil }
@@ -175,7 +175,7 @@ enum QuestionBank {
         )
     }
 
-    static func coverage(version: JavaExamVersion, level: JavaLevel) -> [(objective: ExamObjective, count: Int)] {
+    static func coverage(version: SpringBootVersion, level: SpringTrack) -> [(objective: ExamObjective, count: Int)] {
         let pool = quizzes(version: version, level: level)
         return ExamObjectiveCatalog.objectives(for: version, level: level).map { objective in
             let directObjectiveCount = pool.filter { $0.examObjectiveId == objective.id }.count
@@ -208,8 +208,8 @@ enum QuestionBank {
     }
 
     static func categoryDistribution(
-        version: JavaExamVersion = .se17,
-        level: JavaLevel
+        version: SpringBootVersion = .boot3,
+        level: SpringTrack
     ) -> [QuestionCategoryDistribution] {
         let practice = quizzes(version: version, level: level)
         let mockOnly = mockExamOnlyQuizzes.filter { $0.examVersion == version && $0.level == level }
@@ -233,8 +233,8 @@ enum QuestionBank {
     }
 
     static func contentBalanceIssues(
-        version: JavaExamVersion = .se17,
-        level: JavaLevel,
+        version: SpringBootVersion = .boot3,
+        level: SpringTrack,
         minimumPracticeCount: Int = 5
     ) -> [String] {
         categoryDistribution(version: version, level: level).compactMap { bucket in
@@ -268,7 +268,7 @@ enum QuestionBank {
                 quizzes: quizzes,
                 key: { "\($0.examVersion.rawValue):\(normalizedContentKey($0.code))" },
                 detail: { key, ids in
-                    "同じコードを使う問題が\(ids.count)件あります。通常問題と模試専用で丸かぶりしていないか確認します: \(String(key.prefix(120)))"
+                    "同じコードを使う問題が\(ids.count)件あります。通常問題と総合演習専用で丸かぶりしていないか確認します: \(String(key.prefix(120)))"
                 }
             )
         )
@@ -504,7 +504,7 @@ enum QuestionBank {
         return result
     }
 
-    private static func mockExamPool(version: JavaExamVersion, level: JavaLevel) -> [Quiz] {
+    private static func mockExamPool(version: SpringBootVersion, level: SpringTrack) -> [Quiz] {
         deduplicated(
             quizzes(version: version, level: level) +
             mockExamOnlyQuizzes.filter { $0.examVersion == version && $0.level == level }
@@ -514,8 +514,8 @@ enum QuestionBank {
     private static func boundaryValidationIssues() -> [String] {
         var issues: [String] = []
 
-        for version in JavaExamVersion.allCases {
-            for level in JavaLevel.allCases {
+        for version in SpringBootVersion.allCases {
+            for level in SpringTrack.allCases {
                 let poolCount = mockExamPool(version: version, level: level).count
                 guard poolCount > 0 else { continue }
 
@@ -848,14 +848,16 @@ enum QuestionBank {
 
     private static func coverageCategories(for category: QuizCategory) -> Set<QuizCategory> {
         switch category {
-        case .dataTypes:
-            return [.dataTypes, .string]
-        case .classes:
-            return [.classes, .overloadResolution]
-        case .collections:
-            return [.collections, .generics]
-        case .lambdaStreams:
-            return [.lambdaStreams, .optionalApi]
+        case .bootBasics:
+            return [.bootBasics, .configuration]
+        case .dependencyInjection:
+            return [.dependencyInjection, .architecture]
+        case .webMvc:
+            return [.webMvc, .validation, .security]
+        case .dataJpa:
+            return [.dataJpa, .transactions]
+        case .testing:
+            return [.testing, .observability]
         default:
             return [category]
         }

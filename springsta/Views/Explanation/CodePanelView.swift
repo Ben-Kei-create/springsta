@@ -9,7 +9,7 @@ struct CodeToken {
 }
 
 @MainActor
-enum JavaTokenizer {
+enum SpringTokenizer {
     private static var tokenCache: [String: [[CodeToken]]] = [:]
     private static let maxCachedEntries = 80
 
@@ -214,7 +214,7 @@ struct CodePanelView: View {
 
     private var effectiveZoom: Double { pinchLiveZoom ?? CodeZoom.clamped(zoom) }
     private var syntaxTheme: CodeSyntaxTheme { CodeSyntaxTheme.value(for: syntaxThemeRaw) }
-    private var lines: [[CodeToken]] { JavaTokenizer.tokenize(code) }
+    private var lines: [[CodeToken]] { SpringTokenizer.tokenize(code) }
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -243,6 +243,7 @@ struct CodePanelView: View {
                 }
             }
             .simultaneousGesture(pinchGesture)
+            .background(Color(hex: "071A2E"))
         }
     }
 
@@ -281,7 +282,7 @@ private struct CodeLineView: View {
             GutterView(lineNumber: lineNumber, isHighlighted: isHighlighted, hasPredict: hasPredict, zoom: zoom)
 
             Rectangle()
-                .fill(Color.jbBorder)
+                .fill(Color.white.opacity(0.08))
                 .frame(width: 1)
 
             HStack(spacing: 0) {
@@ -297,7 +298,7 @@ private struct CodeLineView: View {
             Spacer(minLength: 0)
         }
         .frame(height: 26 * zoom)
-        .background(isHighlighted ? Color.jbAccent.opacity(0.07) : Color.clear)
+        .background(isHighlighted ? Color.jbAccent.opacity(0.18) : Color.clear)
         .animation(.jbFast, value: isHighlighted)
     }
 
@@ -342,7 +343,7 @@ private struct GutterView: View {
 
             Text("\(lineNumber)")
                 .font(.codeFont(11 * zoom))
-                .foregroundStyle(isHighlighted ? Color.jbAccent : Color.jbSubtext)
+                .foregroundStyle(isHighlighted ? Color.jbAccentSoft : Color.jbSyntaxComment)
                 .frame(width: 28 * max(zoom, 1.0), alignment: .trailing)
         }
         .frame(width: 52 * max(zoom, 1.0))

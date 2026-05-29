@@ -120,7 +120,7 @@ struct LessonDetailView: View {
                 .font(.system(size: 24, weight: .bold))
                 .foregroundStyle(Color.jbText)
 
-            // 対象読者バナー（Silver / Gold で変わる）
+            // 対象読者バナー（基礎 / 実践 で変わる）
             audienceBanner
 
             Text(lesson.summary)
@@ -133,16 +133,16 @@ struct LessonDetailView: View {
         .jbCard(radius: Radius.lg)
     }
 
-    /// Silver = Java初学者向け、Gold = Silver取得者・Javaエンジニア向け
+    /// 基礎 = 初学者向け、実践 = 実務者向け
     private var audienceBanner: some View {
         let (icon, label, detail, tint): (String, String, String, Color) = {
             switch lesson.level {
-            case .silver:
-                return ("graduationcap.fill", "Java初学者向け",
-                        "Javaをはじめて学ぶ方・基礎を固めたい方", Color.jbSuccess)
-            case .gold:
-                return ("briefcase.fill", "Silver取得者・Javaエンジニア向け",
-                        "実務で使う応用知識を深掘りするレッスン", Color.jbAccent)
+            case .foundation:
+                return ("graduationcap.fill", "Spring Boot初学者向け",
+                        "起動・DI・Web APIの土台を固めたい方", Color.jbSuccess)
+            case .practice:
+                return ("briefcase.fill", "Spring Boot実務者向け",
+                        "実務で使う設計と運用知識を深掘りするレッスン", Color.jbAccent)
             }
         }()
         return HStack(spacing: Spacing.sm) {
@@ -263,7 +263,7 @@ struct LessonDetailView: View {
         case .tip:     return ("lightbulb.fill", "TIP", Color.jbAccent)
         case .warning: return ("exclamationmark.triangle.fill", "WARNING", Color.jbWarning)
         case .note:    return ("info.circle.fill", "NOTE", Color.jbSubtext)
-        case .exam:    return ("checkmark.seal.fill", "試験ポイント", Color.jbSuccess)
+        case .exam:    return ("checkmark.seal.fill", "実務ポイント", Color.jbSuccess)
         }
     }
 

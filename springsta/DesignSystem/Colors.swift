@@ -5,57 +5,60 @@ extension Color {
 
     // MARK: - Background / Surface
 
-    /// 最も暗い背景（ページ背景）
+    /// ページ背景
     static let jbBackground = Color(UIColor { t in
         t.userInterfaceStyle == .dark
-            ? UIColor(hex: "0D1117") : UIColor(hex: "F6F8FA")
+            ? UIColor(hex: "061524") : UIColor(hex: "F4F8FF")
     })
 
     /// カード背景
     static let jbCard = Color(UIColor { t in
         t.userInterfaceStyle == .dark
-            ? UIColor(hex: "161B22") : UIColor(hex: "FFFFFF")
+            ? UIColor(hex: "0B1F35") : UIColor(hex: "FFFFFF")
     })
 
     /// カード内ネストコンテナ
     static let jbSurface = Color(UIColor { t in
         t.userInterfaceStyle == .dark
-            ? UIColor(hex: "1C2128") : UIColor(hex: "F0F1F3")
+            ? UIColor(hex: "102A45") : UIColor(hex: "EAF3FF")
     })
 
     /// 区切り線・枠線
     static let jbBorder = Color(UIColor { t in
         t.userInterfaceStyle == .dark
-            ? UIColor(hex: "30363D") : UIColor(hex: "D0D7DE")
+            ? UIColor(hex: "1D456B") : UIColor(hex: "C7DAF4")
     })
 
     // MARK: - Text
 
     static let jbText = Color(UIColor { t in
         t.userInterfaceStyle == .dark
-            ? UIColor(hex: "E6EDF3") : UIColor(hex: "24292F")
+            ? UIColor(hex: "EAF4FF") : UIColor(hex: "10233F")
     })
 
     static let jbSubtext = Color(UIColor { t in
         t.userInterfaceStyle == .dark
-            ? UIColor(hex: "7D8590") : UIColor(hex: "656D76")
+            ? UIColor(hex: "8EABC7") : UIColor(hex: "5F708A")
     })
 
     // MARK: - Accent / Semantic  (ライト/ダーク共通)
 
-    static let jbAccent  = Color(hex: "FF8A3D")
-    static let jbSuccess = Color(hex: "1A7F37")   // light でも見やすい緑
-    static let jbWarning = Color(hex: "BF8700")   // light でも見やすい黄
-    static let jbError   = Color(hex: "CF222E")   // light でも見やすい赤
+    static let jbAccent = Color(hex: "2563EB")
+    static let jbAccentAlt = Color(hex: "0EA5E9")
+    static let jbAccentDeep = Color(hex: "1E3A8A")
+    static let jbAccentSoft = Color(hex: "60A5FA")
+    static let jbSuccess = Color(hex: "16A34A")
+    static let jbWarning = Color(hex: "0F766E")
+    static let jbError = Color(hex: "DC2626")
 
     // MARK: - Syntax (コードブロックは常にダーク背景なので固定)
 
-    static let jbSyntaxKeyword = Color(hex: "FF7B72")
-    static let jbSyntaxString  = Color(hex: "A5D6FF")
-    static let jbSyntaxType    = Color(hex: "FFA657")
-    static let jbSyntaxMethod  = Color(hex: "D2A8FF")
-    static let jbSyntaxComment = Color(hex: "8B949E")
-    static let jbSyntaxNumber  = Color(hex: "79C0FF")
+    static let jbSyntaxKeyword = Color(hex: "93C5FD")
+    static let jbSyntaxString = Color(hex: "A7F3D0")
+    static let jbSyntaxType = Color(hex: "67E8F9")
+    static let jbSyntaxMethod = Color(hex: "C4B5FD")
+    static let jbSyntaxComment = Color(hex: "8EA7C2")
+    static let jbSyntaxNumber = Color(hex: "7DD3FC")
 
     // MARK: - Hex initializer
 

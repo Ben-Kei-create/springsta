@@ -6,23 +6,23 @@ import SwiftUI
 ///
 /// 4ページ構成:
 ///   1. Welcome   — アプリの価値訴求
-///   2. Level     — Silver / Gold 選択
+///   2. Track     — 基礎 / 実践 選択
 ///   3. Goal      — 1日の目標問題数
 ///   4. Ready     — 設定サマリーと開始ボタン
 ///
 /// 完了時に `AppStorage("hasCompletedOnboarding")` を `true` に設定し、
-/// `JavastaApp` の `.fullScreenCover` を閉じる。
+/// `SpringstaApp` の `.fullScreenCover` を閉じる。
 struct OnboardingView: View {
     @AppStorage("hasCompletedOnboarding")  var hasCompleted = false
-    @AppStorage("selectedJavaLevel")  var selectedLevelRaw = JavaLevel.silver.rawValue
-    @AppStorage("selectedExamVersion") var selectedVersionRaw = JavaExamVersion.se17.rawValue
+    @AppStorage("selectedSpringTrack")  var selectedLevelRaw = SpringTrack.foundation.rawValue
+    @AppStorage("selectedSpringBootVersion") var selectedVersionRaw = SpringBootVersion.boot3.rawValue
     @State private var page: Int = 0
 
     // Proxy for ProgressStore dailyGoal — we write via ProgressStore.shared
     @State private var selectedGoal: Int = 5
 
-    private var selectedLevel: JavaLevel {
-        JavaLevel(rawValue: selectedLevelRaw) ?? .silver
+    private var selectedLevel: SpringTrack {
+        SpringTrack(rawValue: selectedLevelRaw) ?? .foundation
     }
 
     var body: some View {
@@ -46,8 +46,8 @@ struct OnboardingView: View {
             }
         }
         .onAppear {
-            // SE17 を既定に固定（SE11 は廃止）
-            selectedVersionRaw = JavaExamVersion.se17.rawValue
+            // Spring Boot 3.x を既定に固定
+            selectedVersionRaw = SpringBootVersion.boot3.rawValue
         }
     }
 
@@ -85,11 +85,11 @@ struct OnboardingView: View {
                 }
 
                 VStack(spacing: Spacing.sm) {
-                    Text("Javasta")
+                    Text("Springsta")
                         .font(.system(size: 40, weight: .heavy))
                         .foregroundStyle(Color.jbText)
 
-                    Text("Java認定試験の合格を\nコードで理解して目指す")
+                    Text("Spring Bootを\nコードの流れで理解する")
                         .font(.system(size: 18, weight: .medium))
                         .foregroundStyle(Color.jbSubtext)
                         .multilineTextAlignment(.center)
@@ -98,9 +98,9 @@ struct OnboardingView: View {
             }
 
             VStack(spacing: Spacing.md) {
-                featureLine(icon: "curlybraces", text: "コードを追って理解する問題形式")
-                featureLine(icon: "chart.line.uptrend.xyaxis", text: "苦手分野を自動で洗い出し復習")
-                featureLine(icon: "doc.text.fill", text: "本番想定の模擬試験モード")
+                featureLine(icon: "3.circle.fill", text: "Spring Boot 3.x前提の基礎/実践")
+                featureLine(icon: "curlybraces", text: "単一コードの動きを丁寧に確認")
+                featureLine(icon: "arrow.triangle.branch", text: "クラスを跨ぐ値の流れを可視化")
             }
             .padding(.horizontal, Spacing.xl)
 
@@ -119,7 +119,7 @@ struct OnboardingView: View {
             Spacer()
 
             VStack(spacing: Spacing.md) {
-                pageTitle(number: 1, title: "目標レベルを選んでください")
+                pageTitle(number: 1, title: "学習トラックを選んでください")
                 Text("いつでも設定から変更できます")
                     .font(.system(size: 14))
                     .foregroundStyle(Color.jbSubtext)
@@ -127,15 +127,15 @@ struct OnboardingView: View {
 
             VStack(spacing: Spacing.md) {
                 levelCard(
-                    level: .silver,
-                    subtitle: "Java SE 17 Silver\n1Z0-829-JPN",
-                    description: "Javaの基礎〜オブジェクト指向を網羅。\n初めて受験する方にも最適。",
+                    level: .foundation,
+                    subtitle: "Spring Boot 3.x前提\n基礎トラック",
+                    description: "起動・DI・Web API・設定・JPAを網羅。\nシンプルなコードの動きから始めます。",
                     icon: "medal"
                 )
                 levelCard(
-                    level: .gold,
-                    subtitle: "Java SE 17 Gold\n1Z0-830-JPN",
-                    description: "ラムダ・Stream・並行処理など応用領域。\nSilver取得後のステップアップに。",
+                    level: .practice,
+                    subtitle: "Spring Boot 3.x前提\n実践トラック",
+                    description: "Controller、Service、Repositoryを跨いで値が受け渡される流れまで深掘りします。",
                     icon: "medal.fill"
                 )
             }
@@ -157,7 +157,7 @@ struct OnboardingView: View {
 
             VStack(spacing: Spacing.md) {
                 pageTitle(number: 2, title: "1日の目標問題数")
-                Text("毎日コツコツが合格への近道")
+                Text("毎日コツコツが習得への近道")
                     .font(.system(size: 14))
                     .foregroundStyle(Color.jbSubtext)
             }
@@ -210,9 +210,9 @@ struct OnboardingView: View {
 
             // Summary card
             VStack(spacing: 0) {
-                summaryRow(icon: "flag.fill", label: "目標レベル", value: selectedLevel.displayName)
+                summaryRow(icon: "3.circle.fill", label: "前提", value: SpringBootVersion.boot3.displayName)
                 Divider().background(Color.jbBorder).padding(.horizontal, Spacing.md)
-                summaryRow(icon: "doc.text", label: "試験コード", value: JavaExamVersion.se17.examCode(for: selectedLevel))
+                summaryRow(icon: "flag.fill", label: "学習トラック", value: selectedLevel.displayName)
                 Divider().background(Color.jbBorder).padding(.horizontal, Spacing.md)
                 summaryRow(icon: "target", label: "1日の目標", value: "\(selectedGoal)問")
             }
@@ -226,7 +226,7 @@ struct OnboardingView: View {
 
             Spacer()
 
-            nextButton(label: "学習をはじめる 🚀", tint: Color.jbSuccess) {
+            nextButton(label: "学習をはじめる", tint: Color.jbSuccess) {
                 withAnimation(.jbSmooth) {
                     hasCompleted = true
                 }
@@ -304,7 +304,7 @@ struct OnboardingView: View {
     }
 
     private func levelCard(
-        level: JavaLevel,
+        level: SpringTrack,
         subtitle: String,
         description: String,
         icon: String

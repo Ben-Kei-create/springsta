@@ -26,8 +26,8 @@ private enum AllQuizzesLayout {
 }
 
 struct AllQuizzesView: View {
-    let level: JavaLevel
-    var version: JavaExamVersion = .se17
+    let level: SpringTrack
+    var version: SpringBootVersion = .boot3
     var onSelect: (Quiz) -> Void
     var onStartSession: (QuizSession) -> Void
 
@@ -51,7 +51,7 @@ struct AllQuizzesView: View {
 
     private var grouped: [(category: QuizCategory, quizzes: [Quiz])] {
         let dict = Dictionary(grouping: quizzes) { quiz in
-            quiz.canonicalCategory ?? .controlFlow
+            quiz.canonicalCategory ?? .bootBasics
         }
         return dict
             .map { ($0.key, $0.value.sorted { $0.id < $1.id }) }
@@ -104,7 +104,6 @@ struct AllQuizzesView: View {
         }
         .navigationTitle(level.displayName)
         .navigationBarTitleDisplayMode(.inline)
-        .preferredColorScheme(.dark)
         .sheet(isPresented: $showPaywall) {
             PremiumPaywallView()
         }
@@ -303,8 +302,8 @@ private struct SelectedQuizzesActionCard: View {
 // MARK: - MockExamCard
 
 private struct MockExamCard: View {
-    let level: JavaLevel
-    let version: JavaExamVersion
+    let level: SpringTrack
+    let version: SpringBootVersion
     let count: Int
     let onStart: (MockExamVariant) -> Void
 
@@ -326,11 +325,11 @@ private struct MockExamCard: View {
                 .contentTransition(.symbolEffect(.replace))
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(isReady ? "模擬試験開始" : "模擬試験")
+                Text(isReady ? "総合演習開始" : "総合演習")
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(isReady ? Color.jbAccent : Color.jbText)
                     .contentTransition(.opacity)
-                Text("本番形式・解説なし・提出時に採点")
+                Text("実務想定・解説なし・提出時に採点")
                     .font(.system(size: 12))
                     .foregroundStyle(Color.jbSubtext)
                     .lineLimit(1)

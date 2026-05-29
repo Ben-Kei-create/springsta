@@ -101,19 +101,19 @@ struct ActivityHeatmapView: View {
                 pulse = true
             }
         }
-        .alert("受験日まで", isPresented: $showExamAlert) {
+        .alert("目標日まで", isPresented: $showExamAlert) {
             Button("OK", role: .cancel) {}
         } message: {
             if let days = daysUntilExam {
                 if days > 0 {
                     Text("あと \(days) 日")
                 } else if days == 0 {
-                    Text("本日が受験日です")
+                    Text("本日が目標日です")
                 } else {
-                    Text("受験日を過ぎています")
+                    Text("目標日を過ぎています")
                 }
             } else {
-                Text("受験日が設定されていません")
+                Text("目標日が設定されていません")
             }
         }
     }
@@ -173,7 +173,7 @@ struct ActivityHeatmapView: View {
                         .stroke(Color.jbError.opacity(0.8), lineWidth: 0.5)
                 )
                 .onTapGesture { showExamAlert = true }
-                .accessibilityLabel(Text("受験日 \(day.dateKey)"))
+                .accessibilityLabel(Text("目標日 \(day.dateKey)"))
         } else {
             RoundedRectangle(cornerRadius: 2)
                 .fill(cellColor(day))

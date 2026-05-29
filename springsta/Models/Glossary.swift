@@ -1,6 +1,6 @@
 import Foundation
 
-/// 用語集エントリ。レッスン本文から `[用語](javasta://term/<id>)` で参照される。
+/// 用語集エントリ。レッスン本文から `[用語](springsta://term/<id>)` で参照される。
 struct GlossaryTerm: Codable, Identifiable, Hashable {
     let id: String
     let term: String
@@ -13,9 +13,9 @@ struct GlossaryTerm: Codable, Identifiable, Hashable {
 }
 
 extension GlossaryTerm {
-    /// 任意のURLが用語リンクなら用語IDを返す。例: `javasta://term/overload` → `"overload"`
+    /// 任意のURLが用語リンクなら用語IDを返す。例: `springsta://term/overload` → `"overload"`
     static func parse(url: URL) -> String? {
-        guard url.scheme == "javasta", url.host == "term" else { return nil }
+        guard url.scheme == "springsta", url.host == "term" else { return nil }
         let id = url.lastPathComponent
         return id.isEmpty ? nil : id
     }

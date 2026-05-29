@@ -6,14 +6,14 @@ import Observation
 /// - isPremium: 購入済みかどうか（@MainActor Observable）
 ///
 /// 解放されるコンテンツ:
-///   - Gold レベル（問題・レッスン・統計）すべて
-///   - Silver 模擬試験
+///   - 実践トラック（問題・レッスン・統計）すべて
+///   - 総合演習
 @MainActor @Observable
 final class PurchaseManager {
     static let shared = PurchaseManager()
 
     /// App Store Connect で設定するプロダクト ID
-    nonisolated static let productID = "com.fumiakiMogi777.Javasta.premium"
+    nonisolated static let productID = "com.fumiakiMogi777.Springsta.premium"
 
     private(set) var isPremium: Bool = false
     private(set) var product: Product? = nil
@@ -28,12 +28,12 @@ final class PurchaseManager {
 
     // MARK: - Accessors
 
-    /// Gold レベルへのアクセス可否
-    func canAccess(level: JavaLevel) -> Bool {
-        level == .silver || isPremium
+    /// 実践トラックへのアクセス可否
+    func canAccess(level: SpringTrack) -> Bool {
+        level == .foundation || isPremium
     }
 
-    /// 模擬試験へのアクセス可否（Silver/Gold 共に要課金）
+    /// 総合演習へのアクセス可否
     var canAccessMockExam: Bool { isPremium }
 
     // MARK: - Lifecycle

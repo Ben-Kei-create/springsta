@@ -6,8 +6,8 @@ final class SpotlightIndexer {
     static let shared = SpotlightIndexer()
 
     // アクティビティタイプ
-    static let glossaryActivityType = "com.fumiakiMogi777.Javasta.glossary"
-    static let lessonActivityType   = "com.fumiakiMogi777.Javasta.lesson"
+    static let glossaryActivityType = "com.fumiakiMogi777.Springsta.glossary"
+    static let lessonActivityType   = "com.fumiakiMogi777.Springsta.lesson"
 
     private init() {}
 

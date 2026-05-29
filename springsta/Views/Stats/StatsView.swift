@@ -6,8 +6,8 @@ import SwiftUI
 struct StatsView: View {
     @State private var progress = ProgressStore.shared
     @State private var store = PurchaseManager.shared
-    @State private var selectedLevel: JavaLevel = .silver
-    @AppStorage("selectedJavaLevel") private var selectedLevelRaw = JavaLevel.silver.rawValue
+    @State private var selectedLevel: SpringTrack = .foundation
+    @AppStorage("selectedSpringTrack") private var selectedLevelRaw = SpringTrack.foundation.rawValue
     @Environment(\.horizontalSizeClass) private var hSizeClass
     @State private var showPaywall = false
 
@@ -39,12 +39,12 @@ struct StatsView: View {
         return fmt
     }()
 
-    private var level: JavaLevel {
-        JavaLevel(rawValue: selectedLevelRaw) ?? .silver
+    private var level: SpringTrack {
+        SpringTrack(rawValue: selectedLevelRaw) ?? .foundation
     }
 
-    private var isGoldLocked: Bool {
-        level == .gold && !store.isPremium
+    private var isPracticeLocked: Bool {
+        level == .practice && !store.isPremium
     }
 
     var body: some View {
@@ -52,8 +52,8 @@ struct StatsView: View {
             ZStack {
                 Color.jbBackground.ignoresSafeArea()
 
-                if isGoldLocked {
-                    goldLockedPlaceholder
+                if isPracticeLocked {
+                    practiceLockedPlaceholder
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: Spacing.lg) {
@@ -90,10 +90,10 @@ struct StatsView: View {
 
     private var levelSegmentedPicker: some View {
         Picker("レベル", selection: $selectedLevelRaw) {
-            ForEach(JavaLevel.allCases, id: \.rawValue) { lv in
-                let locked = lv == .gold && !store.isPremium
+            ForEach(SpringTrack.allCases, id: \.rawValue) { lv in
+                let locked = lv == .practice && !store.isPremium
                 Label(
-                    lv.displayName.replacingOccurrences(of: "Java ", with: ""),
+                    lv.displayName,
                     systemImage: locked ? "lock.fill" : ""
                 )
                 .tag(lv.rawValue)
@@ -102,22 +102,22 @@ struct StatsView: View {
         .pickerStyle(.segmented)
         .frame(width: 160)
         .onChange(of: selectedLevelRaw) { _, newVal in
-            if newVal == JavaLevel.gold.rawValue && !store.isPremium {
+            if newVal == SpringTrack.practice.rawValue && !store.isPremium {
                 showPaywall = true
-                selectedLevelRaw = JavaLevel.silver.rawValue
+                selectedLevelRaw = SpringTrack.foundation.rawValue
             }
         }
     }
 
-    // MARK: - Gold locked placeholder
+    // MARK: - Practice locked placeholder
 
-    private var goldLockedPlaceholder: some View {
+    private var practiceLockedPlaceholder: some View {
         VStack(spacing: Spacing.lg) {
             Spacer()
             Image(systemName: "lock.fill")
                 .font(.system(size: 48))
                 .foregroundStyle(Color.jbAccent)
-            Text("Gold 統計はプレミアムプランで利用できます")
+            Text("実践トラックの統計はプレミアムプランで利用できます")
                 .font(.headline)
                 .foregroundStyle(Color.jbText)
                 .multilineTextAlignment(.center)
@@ -446,10 +446,10 @@ struct StatsView: View {
             .suffix(10)  // 直近10回
 
         return VStack(alignment: .leading, spacing: Spacing.sm) {
-            chartHeader(title: "模試スコア推移", subtitle: "直近10回")
+            chartHeader(title: "総合演習スコア推移", subtitle: "直近10回")
 
             if attempts.isEmpty {
-                emptyChartPlaceholder("まだ模試の記録がありません")
+                emptyChartPlaceholder("まだ総合演習の記録がありません")
             } else {
                 let passingLine = attempts.first.map { Double($0.passingScorePercent) } ?? 65.0
                 let points: [(label: String, score: Double, passing: Double)] = attempts.map { a in
@@ -458,12 +458,12 @@ struct StatsView: View {
                 }
 
                 Chart {
-                    // 合格ライン
-                    RuleMark(y: .value("合格ライン", passingLine))
+                    // クリアライン
+                    RuleMark(y: .value("クリアライン", passingLine))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [4]))
                         .foregroundStyle(Color.jbWarning.opacity(0.7))
                         .annotation(position: .trailing, alignment: .bottom, spacing: 2) {
-                            Text("合格ライン")
+                            Text("クリアライン")
                                 .font(.system(size: 9))
                                 .foregroundStyle(Color.jbWarning)
                         }

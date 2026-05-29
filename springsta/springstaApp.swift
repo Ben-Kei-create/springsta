@@ -16,7 +16,7 @@ struct SpringstaApp: App {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("spotlight.pendingTermId") private var pendingTermId: String = ""
     @AppStorage("spotlight.pendingLessonId") private var pendingLessonId: String = ""
-    @AppStorage("colorScheme") private var colorSchemeRaw: String = "system"
+    @AppStorage("colorScheme") private var colorSchemeRaw: String = "light"
 
     private var preferredScheme: ColorScheme? {
         switch colorSchemeRaw {

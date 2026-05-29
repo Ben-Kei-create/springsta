@@ -10,15 +10,15 @@ struct HomeView: View {
     @State private var showEmptySessionAlert = false
     @State private var emptySessionMessage = ""
     @State private var expandedMetric: HomeMetric = .accuracy
-    @AppStorage("selectedExamVersion") private var selectedExamVersionRaw = JavaExamVersion.se17.rawValue
-    @AppStorage("selectedJavaLevel") private var selectedLevelRaw = JavaLevel.silver.rawValue
+    @AppStorage("selectedSpringBootVersion") private var selectedSpringBootVersionRaw = SpringBootVersion.boot3.rawValue
+    @AppStorage("selectedSpringTrack") private var selectedLevelRaw = SpringTrack.foundation.rawValue
 
-    private var selectedVersion: JavaExamVersion {
-        JavaExamVersion(rawValue: selectedExamVersionRaw) ?? .se17
+    private var selectedVersion: SpringBootVersion {
+        .boot3
     }
 
-    private var selectedLevel: JavaLevel {
-        JavaLevel(rawValue: selectedLevelRaw) ?? .silver
+    private var selectedLevel: SpringTrack {
+        SpringTrack(rawValue: selectedLevelRaw) ?? .foundation
     }
 
     private var reviewQueueQuizzes: [Quiz] {
@@ -67,14 +67,16 @@ struct HomeView: View {
         } message: {
             Text(emptySessionMessage)
         }
-        .preferredColorScheme(.dark)
+        .onAppear {
+            selectedSpringBootVersionRaw = SpringBootVersion.boot3.rawValue
+        }
     }
 
     // MARK: Header
 
     private var headerSection: some View {
         HStack(alignment: .center, spacing: Spacing.sm) {
-            Text("JavaSta")
+            Text("Springsta")
                 .font(.system(size: 30, weight: .bold, design: .default))
                 .foregroundStyle(Color.jbText)
                 .lineLimit(1)
@@ -108,7 +110,7 @@ struct HomeView: View {
                     Text(selectedLevel.displayName)
                         .font(.system(size: 24, weight: .bold))
                         .foregroundStyle(Color.jbText)
-                    Text("\(selectedVersion.displayName) / \(selectedVersion.examCode(for: selectedLevel))")
+                    Text("\(selectedVersion.displayName) / \(selectedLevel.displayName)トラック")
                         .font(.system(size: 11, weight: .bold).monospacedDigit())
                         .foregroundStyle(Color.jbAccent)
                         .lineLimit(1)
@@ -129,7 +131,6 @@ struct HomeView: View {
             }
 
             levelPicker
-            examVersionPicker
 
             HStack(spacing: Spacing.sm) {
                 CommandMetric(
@@ -194,7 +195,7 @@ struct HomeView: View {
 
     private var levelPicker: some View {
         HStack(spacing: Spacing.xs) {
-            ForEach(JavaLevel.allCases, id: \.self) { level in
+            ForEach(SpringTrack.allCases, id: \.self) { level in
                 Button(action: {
                     if purchase.canAccess(level: level) {
                         withAnimation(.jbSpring) { selectedLevelRaw = level.rawValue }
@@ -202,7 +203,7 @@ struct HomeView: View {
                         showPaywall = true
                     }
                 }) {
-                    Text(level.displayName.replacingOccurrences(of: "Java ", with: ""))
+                    Text(level.displayName)
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(selectedLevel == level ? .white : Color.jbSubtext)
                         .frame(maxWidth: .infinity)
@@ -215,45 +216,6 @@ struct HomeView: View {
                 .buttonStyle(.jbScaled)
                 .sensoryFeedback(.selection, trigger: selectedLevelRaw)
                 .accessibilityIdentifier("home-level-\(level.rawValue)")
-            }
-        }
-    }
-
-    /// SE 11 / SE 17 の試験バージョン切り替えピッカー。
-    /// 試験バージョンはホーム画面で視認しにくかったため、Level ピッカーの直下に追加。
-    private var examVersionPicker: some View {
-        HStack(spacing: Spacing.xs) {
-            ForEach(JavaExamVersion.allCases, id: \.self) { version in
-                let unavailable = selectedLevel == .silver && version == .se11
-                Button(action: {
-                    withAnimation(.jbSpring) {
-                        selectedExamVersionRaw = version.rawValue
-                    }
-                }) {
-                    Text(version.displayName.replacingOccurrences(of: "Java ", with: ""))
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(unavailable ? Color.clear : (selectedVersion == version ? Color.jbAccent : Color.jbSubtext))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 24)
-                        .background(
-                            RoundedRectangle(cornerRadius: Radius.sm)
-                                .fill(selectedVersion == version
-                                      ? Color.jbAccent.opacity(0.12)
-                                      : Color.clear)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: Radius.sm)
-                                        .stroke(
-                                            selectedVersion == version
-                                                ? Color.jbAccent.opacity(0.6)
-                                                : Color.jbBorder.opacity(0.4),
-                                            lineWidth: 1
-                                        )
-                                )
-                        )
-                }
-                .buttonStyle(.jbScaled)
-                .sensoryFeedback(.selection, trigger: selectedExamVersionRaw)
-                .accessibilityIdentifier("home-version-\(version.rawValue)")
             }
         }
     }
@@ -336,7 +298,7 @@ struct HomeView: View {
             ]
         case .answered:
             return [
-                MetricDetailItem(label: "この級", value: "\(progress.answeredCount(level: selectedLevel))/\(levelQuizCount)問"),
+                MetricDetailItem(label: "このトラック", value: "\(progress.answeredCount(level: selectedLevel))/\(levelQuizCount)問"),
                 MetricDetailItem(label: "全体", value: "\(progress.answeredCount())問"),
                 MetricDetailItem(label: "保存", value: "\(progress.bookmarkedQuizIds.count)問")
             ]
@@ -489,7 +451,7 @@ private struct HomeTimestampToggle: View {
             let isExamToday = Self.isSameDay(examDate, timeline.date)
             let hasExam = examDate != nil && (examDate! > timeline.date) && !isExamToday
             let displayText: String = {
-                if isExamToday { return "受験頑張ってください！" }
+                if isExamToday { return "今日の目標日です！" }
                 if hasExam { return Self.countdown(from: timeline.date, to: examDate!) }
                 return Self.timestamp(timeline.date)
             }()
@@ -556,7 +518,7 @@ private struct HomeTimestampToggle: View {
         let hours = (Int(diff) % 86400) / 3600
         let minutes = (Int(diff) % 3600) / 60
         let seconds = Int(diff) % 60
-        return String(format: "受験まで %d日 %02d:%02d:%02d", days, hours, minutes, seconds)
+        return String(format: "目標日まで %d日 %02d:%02d:%02d", days, hours, minutes, seconds)
     }
 }
 
@@ -744,8 +706,8 @@ private struct PracticeModeCard: View {
 // MARK: - LevelSectionView
 
 struct LevelSectionView: View {
-    let level: JavaLevel
-    let version: JavaExamVersion
+    let level: SpringTrack
+    let version: SpringBootVersion
     let quizzes: [Quiz]
     let onSelect: (Quiz) -> Void
     let onStartSession: (QuizSession) -> Void
@@ -1010,7 +972,6 @@ struct QuizSheetView: View {
                         }
                     }
             }
-            .preferredColorScheme(.dark)
             .environment(\.openURL, OpenURLAction { url in
                 if let id = GlossaryTerm.parse(url: url) {
                     glossaryPath.append(id)
@@ -1067,7 +1028,7 @@ private struct QuizSessionResultView: View {
     private var scorePercent: Int {
         Int((Double(correctCount) / Double(totalCount) * 100).rounded())
     }
-    private var isPassing: Bool { scorePercent >= 65 }
+    private var isPassing: Bool { scorePercent >= 70 }
 
     var body: some View {
         ZStack {
@@ -1085,11 +1046,11 @@ private struct QuizSessionResultView: View {
                         LevelBadgeView(level: session.level)
                     }
 
-                    Text(isPassing ? "合格ゾーン" : "もう少しで合格ゾーン")
+                    Text(isPassing ? "理解度チェックをクリア" : "もう少しでクリア")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundStyle(Color.jbText)
 
-                    Text("\(session.version.examCode(for: session.level)) の目安として 65% 以上を合格ゾーンにしています。")
+                    Text("\(session.version.examCode(for: session.level)) の目安として 70% 以上をクリアラインにしています。")
                         .font(.system(size: 13))
                         .foregroundStyle(Color.jbSubtext)
                         .lineSpacing(4)
@@ -1106,7 +1067,7 @@ private struct QuizSessionResultView: View {
                     HStack(spacing: Spacing.sm) {
                         ResultMetric(title: "正解", value: "\(correctCount)問", color: Color.jbSuccess)
                         ResultMetric(title: "出題", value: "\(session.quizzes.count)問", color: Color.jbAccent)
-                        ResultMetric(title: "基準", value: "65%", color: Color.jbWarning)
+                        ResultMetric(title: "基準", value: "70%", color: Color.jbWarning)
                     }
                 }
                 .padding(Spacing.lg)
@@ -1117,7 +1078,7 @@ private struct QuizSessionResultView: View {
                 )
 
                 ShareLink(
-                    item: JavastaShare.practiceResult(
+                    item: SpringstaShare.practiceResult(
                         level: session.level,
                         version: session.version,
                         title: session.title,

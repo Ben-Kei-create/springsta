@@ -150,13 +150,13 @@ final class NotificationManager {
     }
 
     private static let reminderMessages: [String] = [
-        "Java認定試験への道。今日も1問解いてみよう。",
-        "毎日の積み重ねが合格への近道です ☕",
+        "Spring Bootの理解へ。今日も1問解いてみよう。",
+        "毎日の積み重ねが実務力への近道です ☕",
         "今日の目標を達成してストリークを守ろう！",
         "コードを読む力は1問ずつ鍛えられる。",
-        "Silver・Goldへの一歩。今日も練習しよう。",
+        "基礎から実践へ。今日も練習しよう。",
         "昨日の自分より少しだけ前に進もう 🚀",
-        "試験本番まで、今日を無駄にしないで。",
+        "次の開発現場で迷わないために、今日を積み上げよう。",
     ]
 
     // MARK: - Keys / IDs
@@ -168,6 +168,6 @@ final class NotificationManager {
     }
 
     private enum NotificationID {
-        static let daily = "javasta.daily.reminder"
+        static let daily = "springsta.daily.reminder"
     }
 }

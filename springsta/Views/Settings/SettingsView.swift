@@ -5,7 +5,7 @@ struct SettingsView: View {
     @State private var progress = ProgressStore.shared
     @State private var notifications = NotificationManager.shared
     @State private var store = PurchaseManager.shared
-    @AppStorage("colorScheme") private var colorSchemeRaw: String = "system"  // "system" | "dark" | "light"
+    @AppStorage("colorScheme") private var colorSchemeRaw: String = "light"  // "system" | "dark" | "light"
     @AppStorage("codeZoom") private var codeZoom: Double = CodeZoom.default
     @AppStorage(CodeSyntaxTheme.storageKey) private var codeSyntaxThemeRaw: String = CodeSyntaxTheme.classic.rawValue
     @AppStorage("examDateTimestamp") private var examDateTimestamp: Double = 0
@@ -74,8 +74,8 @@ struct SettingsView: View {
                         }
                     }
 
-                    // MARK: 受験日
-                    section(title: "受験日") {
+                    // MARK: 目標日
+                    section(title: "目標日") {
                         VStack(spacing: 0) {
                             examDateRow
                             if let days = daysUntilExam {
@@ -87,7 +87,7 @@ struct SettingsView: View {
                                         .font(.system(size: 15))
                                         .foregroundStyle(days <= 7 ? Color.jbError : Color.jbAccent)
                                         .frame(width: 24)
-                                    Text("試験まで")
+                                    Text("学習まで")
                                         .font(.system(size: 15))
                                         .foregroundStyle(Color.jbText)
                                     Spacer()
@@ -170,9 +170,9 @@ struct SettingsView: View {
                                     .foregroundStyle(Color.jbText)
                             }
                             Picker("カラーモード", selection: $colorSchemeRaw) {
+                                Text("ライト").tag("light")
                                 Text("システムに合わせる").tag("system")
                                 Text("ダーク").tag("dark")
-                                Text("ライト").tag("light")
                             }
                             .pickerStyle(.segmented)
                         }
@@ -219,10 +219,10 @@ struct SettingsView: View {
                             Divider()
                                 .background(Color.jbBorder)
                                 .padding(.horizontal, Spacing.md)
-                            ShareLink(item: JavastaShare.appInviteText) {
+                            ShareLink(item: SpringstaShare.appInviteText) {
                                 SettingNavigationRow(
                                     icon: "square.and.arrow.up",
-                                    title: "Javastaを紹介"
+                                    title: "Springstaを紹介"
                                 )
                             }
                             .buttonStyle(.plain)
@@ -245,7 +245,7 @@ struct SettingsView: View {
                                 title: "フィードバックを送る",
                                 onTap: {
                                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                    let subject = "Javasta フィードバック v\(appVersion)"
+                                    let subject = "Springsta フィードバック v\(appVersion)"
                                     let encoded = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
                                     if let url = URL(string: "mailto:\(AppConfig.supportEmail)?subject=\(encoded)") {
                                         openURL(url)
@@ -291,14 +291,14 @@ struct SettingsView: View {
         .sheet(isPresented: $showNotificationTimePicker) {
             notificationTimePickerSheet
         }
-        .alert("受験日をクリア", isPresented: $showExamClearConfirm) {
+        .alert("目標日をクリア", isPresented: $showExamClearConfirm) {
             Button("キャンセル", role: .cancel) {}
             Button("クリア", role: .destructive) {
                 UINotificationFeedbackGenerator().notificationOccurred(.warning)
                 examDateTimestamp = 0
             }
         } message: {
-            Text("設定した受験日時を削除します。")
+            Text("設定した目標日時を削除します。")
         }
         .alert("学習進捗をリセット", isPresented: $showResetConfirm) {
             Button("キャンセル", role: .cancel) {}
@@ -545,7 +545,7 @@ struct SettingsView: View {
                     .font(.system(size: 15))
                     .foregroundStyle(Color.jbAccent)
                     .frame(width: 24)
-                Text("受験日時")
+                Text("目標日時")
                     .font(.system(size: 15))
                     .foregroundStyle(Color.jbText)
                 Spacer()
@@ -582,7 +582,7 @@ struct SettingsView: View {
             ScrollView {
                 VStack(spacing: Spacing.lg) {
                     DatePicker(
-                        "受験日時",
+                        "目標日時",
                         selection: $pickerDate,
                         in: Date()...,
                         displayedComponents: [.date, .hourAndMinute]
@@ -626,7 +626,7 @@ struct SettingsView: View {
                 }
             }
             .background(Color.jbBackground.ignoresSafeArea())
-            .navigationTitle("受験日時を設定")
+            .navigationTitle("目標日時を設定")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  Javasta
+//  Springsta
 //
 //  Created by 茂木史明 on 2026/04/19.
 //
@@ -29,7 +29,6 @@ struct ContentView: View {
                 }
         }
         .tint(Color.jbAccent)
-        .preferredColorScheme(.dark)
         .onChange(of: pendingTermId) { _, newId in
             if !newId.isEmpty { selectedTab = .learning }
         }

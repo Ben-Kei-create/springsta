@@ -16,6 +16,7 @@ struct CodeBlockView: View {
 
     @State private var activeTabId: String
     @State private var isExpanded: Bool = false
+    @State private var didCopyCode: Bool = false
     @AppStorage("codeZoom") private var storedZoom: Double = CodeZoom.default
 
     init(
@@ -74,6 +75,19 @@ struct CodeBlockView: View {
 
             Spacer(minLength: Spacing.xs)
 
+            Button(action: copyActiveCode) {
+                Image(systemName: didCopyCode ? "checkmark" : "doc.on.doc")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(didCopyCode ? Color.jbSuccess : Color.jbSubtext)
+                    .frame(width: 24, height: 22)
+                    .background(
+                        RoundedRectangle(cornerRadius: 5)
+                            .stroke(didCopyCode ? Color.jbSuccess.opacity(0.6) : Color.jbBorder, lineWidth: 1)
+                    )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(didCopyCode ? "コードをコピーしました" : "コードをコピー")
+
             Button(action: { isExpanded = true }) {
                 Image(systemName: "arrow.up.left.and.arrow.down.right")
                     .font(.system(size: 11, weight: .semibold))
@@ -128,6 +142,20 @@ struct CodeBlockView: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    private func copyActiveCode() {
+        UIPasteboard.general.string = activeCode
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        withAnimation(.jbFast) {
+            didCopyCode = true
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.2))
+            withAnimation(.jbFast) {
+                didCopyCode = false
+            }
+        }
     }
 }
 

@@ -2,7 +2,7 @@ import Foundation
 
 struct Lesson: Codable, Identifiable {
     let id: String
-    let level: JavaLevel
+    let level: SpringTrack
     let category: String
     let title: String
     let summary: String

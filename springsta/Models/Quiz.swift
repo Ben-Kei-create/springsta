@@ -2,13 +2,13 @@ import Foundation
 
 struct Quiz: Codable, Identifiable {
     let id: String
-    let level: JavaLevel
-    var examVersion: JavaExamVersion = .se17
+    let level: SpringTrack
+    var examVersion: SpringBootVersion = .boot3
     var examObjectiveId: String = "unmapped"
     var difficulty: QuizDifficulty = .standard
     var estimatedSeconds: Int = 90
     var isMultipleSelect: Bool = false
-    var validatedByJavac: Bool = true
+    var validatedByCompiler: Bool = true
     var reviewStatus: QuizReviewStatus = .draft
     var variantGroupId: String? = nil
     var isMockExamOnly: Bool = false
@@ -67,7 +67,7 @@ extension Quiz {
         case difficulty
         case estimatedSeconds
         case isMultipleSelect
-        case validatedByJavac
+        case validatedByCompiler
         case reviewStatus
         case variantGroupId
         case isMockExamOnly
@@ -84,13 +84,13 @@ extension Quiz {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
-        level = try container.decode(JavaLevel.self, forKey: .level)
-        examVersion = try container.decodeIfPresent(JavaExamVersion.self, forKey: .examVersion) ?? .se17
+        level = try container.decode(SpringTrack.self, forKey: .level)
+        examVersion = try container.decodeIfPresent(SpringBootVersion.self, forKey: .examVersion) ?? .boot3
         examObjectiveId = try container.decodeIfPresent(String.self, forKey: .examObjectiveId) ?? "unmapped"
         difficulty = try container.decodeIfPresent(QuizDifficulty.self, forKey: .difficulty) ?? .standard
         estimatedSeconds = try container.decodeIfPresent(Int.self, forKey: .estimatedSeconds) ?? 90
         isMultipleSelect = try container.decodeIfPresent(Bool.self, forKey: .isMultipleSelect) ?? false
-        validatedByJavac = try container.decodeIfPresent(Bool.self, forKey: .validatedByJavac) ?? true
+        validatedByCompiler = try container.decodeIfPresent(Bool.self, forKey: .validatedByCompiler) ?? true
         reviewStatus = try container.decodeIfPresent(QuizReviewStatus.self, forKey: .reviewStatus) ?? .draft
         variantGroupId = try container.decodeIfPresent(String.self, forKey: .variantGroupId)
         isMockExamOnly = try container.decodeIfPresent(Bool.self, forKey: .isMockExamOnly) ?? false
@@ -118,7 +118,7 @@ extension Quiz {
         try container.encode(difficulty, forKey: .difficulty)
         try container.encode(estimatedSeconds, forKey: .estimatedSeconds)
         try container.encode(isMultipleSelect, forKey: .isMultipleSelect)
-        try container.encode(validatedByJavac, forKey: .validatedByJavac)
+        try container.encode(validatedByCompiler, forKey: .validatedByCompiler)
         try container.encode(reviewStatus, forKey: .reviewStatus)
         try container.encodeIfPresent(variantGroupId, forKey: .variantGroupId)
         try container.encode(isMockExamOnly, forKey: .isMockExamOnly)
@@ -182,7 +182,7 @@ extension Quiz {
 
     private static func questionFocus(category: String, tags: [String]) -> String {
         let ignoredTags: Set<String> = [
-            "模試専用",
+            "総合演習専用",
             "compile",
             "exam",
             "standard",

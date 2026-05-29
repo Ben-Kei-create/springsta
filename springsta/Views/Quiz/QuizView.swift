@@ -441,7 +441,7 @@ private struct QuizIssueReportSheet: View {
 
     private func sendReport() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        let subject = "Javasta 問題報告: \(report.quiz.id)"
+        let subject = "Springsta 問題報告: \(report.quiz.id)"
         let body = reportBody()
         openMail(subject: subject, body: body)
     }
@@ -449,8 +449,8 @@ private struct QuizIssueReportSheet: View {
     private func reportBody() -> String {
         var body = """
 問題ID: \(report.quiz.id)
-級: \(report.quiz.level.displayName)
-試験: \(report.quiz.examCode)
+トラック: \(report.quiz.level.displayName)
+学習範囲: \(report.quiz.examCode)
 カテゴリ: \(report.quiz.categoryDisplayName)
 出題範囲ID: \(report.quiz.examObjectiveId)
 報告種別: \(issueType.rawValue)

@@ -4,10 +4,10 @@ struct ExplanationView: View {
     @State private var vm: ExplanationViewModel
     @State private var activeLesson: Lesson?
     @AppStorage("codeZoom") private var codeZoom: Double = CodeZoom.default
-    let level: JavaLevel
+    let level: SpringTrack
     var onDismiss: () -> Void
 
-    init(explanation: Explanation, level: JavaLevel, onDismiss: @escaping () -> Void) {
+    init(explanation: Explanation, level: SpringTrack, onDismiss: @escaping () -> Void) {
         self._vm = State(wrappedValue: ExplanationViewModel(explanation: explanation))
         self.level = level
         self.onDismiss = onDismiss

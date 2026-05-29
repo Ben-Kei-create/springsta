@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct LevelBadgeView: View {
-    let level: JavaLevel
+    let level: SpringTrack
     var zoomPercent: Int? = nil
     var onTap: (() -> Void)? = nil
 

@@ -1,30 +1,30 @@
 import Foundation
 
-enum JavastaShare {
+enum SpringstaShare {
     static let appInviteText: String = """
-JavastaでJava Silver / Goldの対策中。
-コードの流れを追いながら、出力問題と模擬試験を練習できます。
+SpringstaでSpring Boot 3.xを学習中。
+単一コードの動きから、Controller→Service→Repositoryを跨ぐ値の流れまで練習できます。
 \(AppConfig.appStoreURL.absoluteString)
 """
 
     static func practiceResult(
-        level: JavaLevel,
-        version: JavaExamVersion,
+        level: SpringTrack,
+        version: SpringBootVersion,
         title: String,
         correctCount: Int,
         totalCount: Int,
         scorePercent: Int
     ) -> String {
         """
-Javastaで\(level.displayName)対策。
+Springstaで\(level.displayName)トラックを学習。
 \(version.examCode(for: level)) / \(title)
 結果: \(correctCount)/\(totalCount)問 正解（\(scorePercent)%）
 """
     }
 
     static func mockExamResult(
-        level: JavaLevel,
-        version: JavaExamVersion,
+        level: SpringTrack,
+        version: SpringBootVersion,
         variant: MockExamVariant,
         correctCount: Int,
         totalCount: Int,
@@ -32,10 +32,10 @@ Javastaで\(level.displayName)対策。
         isPassing: Bool
     ) -> String {
         """
-Javastaで\(level.displayName)の\(variant.displayName)を実施。
+Springstaで\(level.displayName)の\(variant.displayName)を実施。
 \(version.examCode(for: level))
 結果: \(correctCount)/\(totalCount)問 正解（\(scorePercent)%）
-\(isPassing ? "合格ゾーンに到達" : "合格ゾーンまであと少し")
+\(isPassing ? "理解度チェックをクリア" : "理解度チェックまであと少し")
 """
     }
 }

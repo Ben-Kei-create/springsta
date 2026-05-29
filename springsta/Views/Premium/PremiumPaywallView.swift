@@ -6,10 +6,10 @@ struct PremiumPaywallView: View {
     @State private var purchase = PurchaseManager.shared
 
     private let features: [(icon: String, color: Color, title: String, body: String)] = [
-        ("graduationcap.fill",  .orange,        "模擬試験（Silver）",   "本番形式・時間制限・採点付き"),
-        ("star.fill",           .yellow,        "Gold 問題すべて",       "Java Gold 全問・解説・統計"),
-        ("chart.bar.fill",      Color(red: 0.4, green: 0.8, blue: 0.4), "Gold 統計",    "正答率・弱点分野を可視化"),
-        ("icloud.fill",         .cyan,          "クラウド同期",          "複数デバイス間で進捗を共有"),
+        ("graduationcap.fill", Color.jbAccentDeep, "総合演習", "実務想定・時間制限・採点付き"),
+        ("star.fill", Color.jbAccent, "実践トラック", "設計・Security・運用まで解放"),
+        ("chart.bar.fill", Color.jbAccentAlt, "実践統計", "正答率・弱点分野を可視化"),
+        ("icloud.fill", Color.jbSuccess, "クラウド同期", "複数デバイス間で進捗を共有"),
     ]
 
     var body: some View {
@@ -41,7 +41,6 @@ struct PremiumPaywallView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
         }
-        .preferredColorScheme(.dark)
         .alert("購入エラー", isPresented: .constant(purchase.purchaseError != nil)) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -66,11 +65,11 @@ struct PremiumPaywallView: View {
             }
             .padding(.top, Spacing.md)
 
-            Text("Javasta プレミアム")
+            Text("Springsta プレミアム")
                 .font(.system(size: 26, weight: .heavy))
                 .foregroundStyle(Color.jbText)
 
-            Text("Gold・模擬試験をすべて解放")
+            Text("実践トラックと総合演習を解放")
                 .font(.system(size: 15))
                 .foregroundStyle(Color.jbSubtext)
                 .multilineTextAlignment(.center)

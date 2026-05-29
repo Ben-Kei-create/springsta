@@ -106,7 +106,7 @@ struct SplashView: View {
             VStack(alignment: .leading, spacing: compactHeight ? 8 : 10) {
                 launchLine(
                     symbol: "terminal.fill",
-                    text: "javac JavaSta.java",
+                    text: "./mvnw spring-boot:run",
                     tint: Color.jbSyntaxType,
                     isActive: stage.rawValue >= Stage.compile.rawValue
                 )
@@ -118,7 +118,7 @@ struct SplashView: View {
                 )
                 launchLine(
                     symbol: "play.fill",
-                    text: "java JavaSta",
+                    text: "started Springsta",
                     tint: Color.jbAccent,
                     isActive: stage.rawValue >= Stage.reveal.rawValue
                 )
@@ -144,7 +144,7 @@ struct SplashView: View {
 
             Spacer()
 
-            Label("Launch.java", systemImage: "chevron.left.forwardslash.chevron.right")
+            Label("SpringstaApplication.java", systemImage: "chevron.left.forwardslash.chevron.right")
                 .font(.codeFont(11))
                 .foregroundStyle(Color.jbSubtext)
                 .lineLimit(1)
@@ -189,9 +189,9 @@ struct SplashView: View {
 
         return VStack(spacing: compactHeight ? 8 : 12) {
             HStack(alignment: .firstTextBaseline, spacing: 0) {
-                Text("Java")
+                Text("Spring")
                     .foregroundStyle(Color.jbText)
-                Text("Sta")
+                Text("sta")
                     .foregroundStyle(Color.jbAccent)
             }
             .font(.system(size: logoSize, weight: .black, design: .rounded))
@@ -209,10 +209,10 @@ struct SplashView: View {
             }
 
             HStack(spacing: 8) {
-                Text("SILVER")
+                Text("BASICS")
                 Text("/")
                     .foregroundStyle(Color.jbSubtext)
-                Text("GOLD")
+                Text("PRACTICE")
             }
             .font(.system(size: 11, weight: .bold).monospacedDigit())
             .tracking(3)

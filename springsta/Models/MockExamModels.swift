@@ -8,22 +8,22 @@ enum MockExamVariant: String, Codable, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .small: return "20分模試"
-        case .full: return "本番模試"
+        case .small: return "20分演習"
+        case .full: return "総合演習"
         }
     }
 
     var shortTitle: String {
         switch self {
         case .small: return "20分"
-        case .full: return "本番"
+        case .full: return "総合"
         }
     }
 }
 
 struct MockExamSpec: Hashable {
-    let version: JavaExamVersion
-    let level: JavaLevel
+    let version: SpringBootVersion
+    let level: SpringTrack
     let officialQuestionCount: Int
     let officialDurationSeconds: Int
     let passingScorePercent: Int
@@ -64,32 +64,21 @@ struct MockExamSpec: Hashable {
         return "\(minutes)分"
     }
 
-    static func official(version: JavaExamVersion, level: JavaLevel) -> MockExamSpec {
-        switch version {
-        case .se17:
-            return MockExamSpec(
-                version: version,
-                level: level,
-                officialQuestionCount: 60,
-                officialDurationSeconds: 90 * 60,
-                passingScorePercent: 65
-            )
-        case .se11:
-            return MockExamSpec(
-                version: version,
-                level: level,
-                officialQuestionCount: 80,
-                officialDurationSeconds: 180 * 60,
-                passingScorePercent: 63
-            )
-        }
+    static func official(version: SpringBootVersion, level: SpringTrack) -> MockExamSpec {
+        MockExamSpec(
+            version: version,
+            level: level,
+            officialQuestionCount: level == .foundation ? 24 : 30,
+            officialDurationSeconds: (level == .foundation ? 45 : 60) * 60,
+            passingScorePercent: 70
+        )
     }
 }
 
 struct MockExamAttempt: Codable, Identifiable, Equatable {
     let id: UUID
-    let version: JavaExamVersion
-    let level: JavaLevel
+    let version: SpringBootVersion
+    let level: SpringTrack
     let variant: MockExamVariant
     let startedAt: Date
     let completedAt: Date
@@ -102,8 +91,8 @@ struct MockExamAttempt: Codable, Identifiable, Equatable {
 
     init(
         id: UUID = UUID(),
-        version: JavaExamVersion,
-        level: JavaLevel,
+        version: SpringBootVersion,
+        level: SpringTrack,
         variant: MockExamVariant,
         startedAt: Date,
         completedAt: Date,

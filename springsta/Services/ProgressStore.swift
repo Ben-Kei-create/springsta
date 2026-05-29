@@ -8,9 +8,9 @@ final class ProgressStore {
 
     /// App Group 対応の UserDefaults。
     /// Xcode で「Signing & Capabilities → App Groups」に
-    /// `group.com.fumiakiMogi777.Javasta` を追加したうえで使用する。
+    /// `group.com.fumiakiMogi777.Springsta` を追加したうえで使用する。
     nonisolated(unsafe) static let appGroupDefaults: UserDefaults = {
-        UserDefaults(suiteName: "group.com.fumiakiMogi777.Javasta") ?? .standard
+        UserDefaults(suiteName: "group.com.fumiakiMogi777.Springsta") ?? .standard
     }()
 
     // 永続化キー
@@ -273,7 +273,7 @@ final class ProgressStore {
             .map { $0 }
     }
 
-    func objectiveProgress(version: JavaExamVersion, level: JavaLevel) -> [ObjectiveProgressSummary] {
+    func objectiveProgress(version: SpringBootVersion, level: SpringTrack) -> [ObjectiveProgressSummary] {
         let objectives = ExamObjectiveCatalog.objectives(for: version, level: level)
         let objectiveIds = Set(objectives.map(\.id))
         let quizById = Dictionary(
@@ -307,8 +307,8 @@ final class ProgressStore {
     }
 
     func weakestObjective(
-        version: JavaExamVersion,
-        level: JavaLevel,
+        version: SpringBootVersion,
+        level: SpringTrack,
         minimumAttempts: Int = 2
     ) -> ObjectiveProgressSummary? {
         objectiveProgress(version: version, level: level)
@@ -322,18 +322,18 @@ final class ProgressStore {
             .first
     }
 
-    func answeredCount(level: JavaLevel? = nil) -> Int {
+    func answeredCount(level: SpringTrack? = nil) -> Int {
         let ids = answerHistory
             .filter { level == nil || $0.level == level }
             .map(\.quizId)
         return Set(ids).count
     }
 
-    func answerAttemptCount(level: JavaLevel) -> Int {
+    func answerAttemptCount(level: SpringTrack) -> Int {
         answerHistory.filter { $0.level == level }.count
     }
 
-    func levelAccuracyPercent(_ level: JavaLevel) -> Int {
+    func levelAccuracyPercent(_ level: SpringTrack) -> Int {
         let records = answerHistory.filter { $0.level == level }
         guard !records.isEmpty else { return 0 }
         let correct = records.filter(\.correct).count
@@ -341,8 +341,8 @@ final class ProgressStore {
     }
 
     func mockExamAttempts(
-        version: JavaExamVersion,
-        level: JavaLevel,
+        version: SpringBootVersion,
+        level: SpringTrack,
         variant: MockExamVariant
     ) -> [MockExamAttempt] {
         mockExamAttempts

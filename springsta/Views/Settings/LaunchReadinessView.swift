@@ -64,10 +64,10 @@ struct LaunchReadinessView: View {
 
     private var contentMetrics: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.sm) {
-            LaunchReadinessMetric(title: "Silver通常", value: "\(snapshot.silverPracticeCount)問", tint: Color.jbAccent)
-            LaunchReadinessMetric(title: "Gold通常", value: "\(snapshot.goldPracticeCount)問", tint: Color.jbAccent)
-            LaunchReadinessMetric(title: "Silver模試専用", value: "\(snapshot.silverMockOnlyCount)問", tint: snapshot.silverMockOnlyCount >= 100 ? Color.jbSuccess : Color.jbWarning)
-            LaunchReadinessMetric(title: "Gold模試専用", value: "\(snapshot.goldMockOnlyCount)問", tint: snapshot.goldMockOnlyCount >= 100 ? Color.jbSuccess : Color.jbWarning)
+            LaunchReadinessMetric(title: "基礎通常", value: "\(snapshot.foundationPracticeCount)問", tint: Color.jbAccent)
+            LaunchReadinessMetric(title: "実践通常", value: "\(snapshot.practicePracticeCount)問", tint: Color.jbAccent)
+            LaunchReadinessMetric(title: "基礎演習候補", value: "\(snapshot.foundationExerciseCount)問", tint: snapshot.foundationExerciseCount >= 5 ? Color.jbSuccess : Color.jbWarning)
+            LaunchReadinessMetric(title: "実践演習候補", value: "\(snapshot.practiceExerciseCount)問", tint: snapshot.practiceExerciseCount >= 5 ? Color.jbSuccess : Color.jbWarning)
             LaunchReadinessMetric(title: "用語", value: "\(snapshot.glossaryCount)件", tint: Color.jbSuccess)
             LaunchReadinessMetric(title: "レッスン", value: "\(snapshot.lessonCount)件", tint: Color.jbSuccess)
         }
@@ -104,16 +104,16 @@ struct LaunchReadinessView: View {
                 Divider().background(Color.jbBorder).padding(.horizontal, Spacing.md)
                 LaunchReadinessCheckRow(
                     title: "出題範囲カバレッジ",
-                    detail: "SE / 級ごとの試験範囲に通常問題があるか",
+                    detail: "バージョン / トラックごとの学習範囲に通常問題があるか",
                     value: "\(snapshot.coverageIssueCount)件",
                     isPassing: snapshot.coverageIssueCount == 0
                 )
                 Divider().background(Color.jbBorder).padding(.horizontal, Spacing.md)
                 LaunchReadinessCheckRow(
-                    title: "模試専用問題",
-                    detail: "Silver / Gold それぞれ100問を目安",
-                    value: "\(min(snapshot.silverMockOnlyCount, snapshot.goldMockOnlyCount))/100",
-                    isPassing: snapshot.silverMockOnlyCount >= 100 && snapshot.goldMockOnlyCount >= 100
+                    title: "総合演習候補",
+                    detail: "基礎 / 実践 それぞれ5問以上を目安",
+                    value: "\(min(snapshot.foundationExerciseCount, snapshot.practiceExerciseCount))/5",
+                    isPassing: snapshot.foundationExerciseCount >= 5 && snapshot.practiceExerciseCount >= 5
                 )
             }
             .clipShape(RoundedRectangle(cornerRadius: Radius.md))
@@ -217,8 +217,8 @@ struct LaunchReadinessView: View {
                 .foregroundStyle(Color.jbText)
 
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                LaunchCopyLine(icon: "curlybraces", text: "コードの流れを追って理解するJava試験対策")
-                LaunchCopyLine(icon: "checklist.checked", text: "Silver / Gold対応、通常練習と本番想定模試")
+                LaunchCopyLine(icon: "curlybraces", text: "コードの流れを追って理解するSpring Boot学習")
+                LaunchCopyLine(icon: "checklist.checked", text: "基礎 / 実践対応、通常練習と実務想定演習")
                 LaunchCopyLine(icon: "doc.text.magnifyingglass", text: "汎用解説ではなく、各問題ごとの追跡解説")
                 LaunchCopyLine(icon: "flag", text: "問題報告とフィードバック導線で品質改善を回せる")
             }
@@ -236,10 +236,10 @@ struct LaunchReadinessView: View {
 }
 
 private struct LaunchReadinessSnapshot {
-    let silverPracticeCount: Int
-    let goldPracticeCount: Int
-    let silverMockOnlyCount: Int
-    let goldMockOnlyCount: Int
+    let foundationPracticeCount: Int
+    let practicePracticeCount: Int
+    let foundationExerciseCount: Int
+    let practiceExerciseCount: Int
     let glossaryCount: Int
     let lessonCount: Int
     let explanationIssueCount: Int
@@ -262,17 +262,17 @@ private struct LaunchReadinessSnapshot {
 
     init() {
         let explanationReport = QuestionBank.explanationAuditReport()
-        silverPracticeCount = QuestionBank.quizzes(version: .se17, level: .silver).count
-        goldPracticeCount = QuestionBank.quizzes(version: .se17, level: .gold).count
-        silverMockOnlyCount = QuestionBank.mockExamOnlyQuizzes.filter { $0.level == .silver && $0.examVersion == .se17 }.count
-        goldMockOnlyCount = QuestionBank.mockExamOnlyQuizzes.filter { $0.level == .gold && $0.examVersion == .se17 }.count
+        foundationPracticeCount = QuestionBank.quizzes(version: .boot3, level: .foundation).count
+        practicePracticeCount = QuestionBank.quizzes(version: .boot3, level: .practice).count
+        foundationExerciseCount = QuestionBank.mockExamEligibleCount(version: .boot3, level: .foundation)
+        practiceExerciseCount = QuestionBank.mockExamEligibleCount(version: .boot3, level: .practice)
         glossaryCount = GlossaryTerm.samples.count
         lessonCount = Lesson.samples.count
         explanationIssueCount = explanationReport.needsAttentionCount
         contentQualityIssueCount = QuestionBank.contentQualityIssues().count
         validationIssueCount = QuestionBank.validationIssues().count
-        coverageGroups = JavaExamVersion.allCases.flatMap { version in
-            JavaLevel.allCases.compactMap { level in
+        coverageGroups = SpringBootVersion.allCases.flatMap { version in
+            SpringTrack.allCases.compactMap { level in
                 let objectives = QuestionBank.coverage(version: version, level: level)
                 guard !objectives.isEmpty else { return nil }
                 let items = objectives.map {
@@ -312,8 +312,10 @@ private struct LaunchReadinessSnapshot {
         contentQualityIssueCount == 0 &&
         validationIssueCount == 0 &&
         coverageIssueCount == 0 &&
-        silverMockOnlyCount >= 100 &&
-        goldMockOnlyCount >= 100 &&
+        foundationPracticeCount >= 5 &&
+        practicePracticeCount >= 5 &&
+        foundationExerciseCount >= 5 &&
+        practiceExerciseCount >= 5 &&
         hasPrivacyManifest &&
         hasPrivacyPolicyURL &&
         hasSupportURL &&
@@ -327,8 +329,8 @@ private struct LaunchReadinessSnapshot {
 }
 
 private struct LaunchReadinessCoverageGroup: Identifiable {
-    let version: JavaExamVersion
-    let level: JavaLevel
+    let version: SpringBootVersion
+    let level: SpringTrack
     let practiceCount: Int
     let objectives: [LaunchReadinessObjectiveCoverage]
 
