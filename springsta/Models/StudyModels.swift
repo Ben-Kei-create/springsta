@@ -181,6 +181,7 @@ enum QuizPracticeMode: String, Codable, CaseIterable, Identifiable {
     case single
     case daily
     case weak
+    case story
     case mistakes
     case unattempted
     case mockExam
@@ -189,8 +190,7 @@ enum QuizPracticeMode: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     static let homeModes: [QuizPracticeMode] = [
-        .daily,
-        .weak,
+        .story,
         .mistakes,
         .unattempted,
         .mockExam
@@ -201,7 +201,8 @@ enum QuizPracticeMode: String, Codable, CaseIterable, Identifiable {
         case .single: return "1問練習"
         case .daily: return "デイリー"
         case .weak: return "弱点克服"
-        case .mistakes: return "間違い復習"
+        case .story: return "ストーリー"
+        case .mistakes: return "復習"
         case .unattempted: return "未学習"
         case .mockExam: return "総合演習"
         case .bookmarks: return "ブックマーク"
@@ -220,6 +221,8 @@ enum QuizPracticeMode: String, Codable, CaseIterable, Identifiable {
             return "今日のSpring Boot演習"
         case .weak:
             return "苦手タグを重点確認"
+        case .story:
+            return "基礎から順番に進む"
         case .mistakes:
             return "間違えた問題を再確認"
         case .unattempted:
@@ -239,6 +242,8 @@ enum QuizPracticeMode: String, Codable, CaseIterable, Identifiable {
             return "calendar.badge.clock"
         case .weak:
             return "target"
+        case .story:
+            return "books.vertical.fill"
         case .mistakes:
             return "arrow.counterclockwise"
         case .unattempted:
@@ -254,7 +259,7 @@ enum QuizPracticeMode: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .single: return 1
         case .daily: return 10
-        case .weak, .mistakes, .unattempted, .bookmarks: return 12
+        case .story, .weak, .mistakes, .unattempted, .bookmarks: return 12
         case .mockExam: return 30
         }
     }

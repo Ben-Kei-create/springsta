@@ -133,6 +133,10 @@ enum QuestionBank {
             selected = Array(pool.shuffled().prefix(min(mode.limit, pool.count)))
         case .weak:
             selected = weak(pool, progress: progress, limit: mode.limit)
+        case .story:
+            // カテゴリ・元の順番通りに未学習を優先し、順番に進む
+            let notAttempted = pool.filter { progress.stats(for: $0.id).attempts == 0 }
+            selected = Array((notAttempted.isEmpty ? pool : notAttempted).prefix(mode.limit))
         case .mistakes:
             selected = mistakes(pool, progress: progress, limit: mode.limit)
         case .unattempted:

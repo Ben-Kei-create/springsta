@@ -34,21 +34,27 @@ struct HomeView: View {
             ZStack {
                 Color.jbBackground.ignoresSafeArea()
 
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: Spacing.md) {
-                        headerSection
+                VStack(spacing: 0) {
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: Spacing.md) {
+                            headerSection
 
-                        ForEach(visibleSectionOrder, id: \.self) { sectionId in
-                            sectionContent(for: sectionId)
-                                .padding(.vertical, 2)
-                                .transition(.scale(scale: 0.96).combined(with: .opacity))
+                            ForEach(visibleSectionOrder, id: \.self) { sectionId in
+                                sectionContent(for: sectionId)
+                                    .padding(.vertical, 2)
+                                    .transition(.scale(scale: 0.96).combined(with: .opacity))
+                            }
+
+                            Color.clear
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 60)
                         }
-
-                        Color.clear
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 60)
+                        .padding(.bottom, Spacing.lg)
                     }
-                    .padding(.bottom, Spacing.lg)
+
+                    if !purchase.isPremium {
+                        AdBannerView()
+                    }
                 }
             }
             .navigationBarHidden(true)
@@ -308,12 +314,7 @@ struct HomeView: View {
     // MARK: Home sections
 
     private var visibleSectionOrder: [HomeSectionID] {
-        HomeSectionID.fixedOrder.filter { id in
-            if case .reviewQueue = id {
-                return !reviewQueueQuizzes.isEmpty
-            }
-            return true
-        }
+        HomeSectionID.fixedOrder
     }
 
     @ViewBuilder
@@ -325,8 +326,6 @@ struct HomeView: View {
             ActivityHeatmapView(
                 counts: progress.recentDailyCounts(days: ProgressStore.historyWindowDays)
             )
-        case .reviewQueue:
-            reviewQueueSection
         case .practiceModes:
             practiceModesSection
         case .levelSection:
@@ -387,14 +386,12 @@ private struct SectionHeader: View {
 enum HomeSectionID: String, CaseIterable, Hashable {
     case commandCenter
     case heatmap
-    case reviewQueue
     case practiceModes
     case levelSection
 
     static let fixedOrder: [HomeSectionID] = [
         .commandCenter,
         .heatmap,
-        .reviewQueue,
         .practiceModes,
         .levelSection
     ]
@@ -403,12 +400,10 @@ enum HomeSectionID: String, CaseIterable, Hashable {
         switch self {
         case .commandCenter: return "ステータス"
         case .heatmap: return "学習マップ"
-        case .reviewQueue: return "復習"
         case .practiceModes: return "練習を開始"
         case .levelSection: return "問題リスト"
         }
     }
-
 }
 
 // MARK: - HomeMetric
@@ -1139,5 +1134,37 @@ private struct ResultMetric: View {
         .padding(Spacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
         .jbCard(radius: Radius.sm, fill: Color.jbBackground)
+    }
+}
+
+// MARK: - AdBannerView
+
+struct AdBannerView: View {
+    var body: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: "megaphone.fill")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(Color.jbSubtext)
+            Text("広告スペース（テスト用）")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Color.jbSubtext)
+            Spacer()
+            Text("AD")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Capsule().fill(Color.jbSubtext.opacity(0.5)))
+        }
+        .padding(.horizontal, Spacing.md)
+        .frame(maxWidth: .infinity)
+        .frame(height: 44)
+        .background(Color.jbCard)
+        .overlay(
+            Rectangle()
+                .frame(height: 1)
+                .foregroundStyle(Color.jbBorder),
+            alignment: .top
+        )
     }
 }
