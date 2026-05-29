@@ -1,21 +1,41 @@
 //
 //  ContentView.swift
-//  springsta
+//  Javasta
 //
-//  Created by 茂木史明 on 2026/05/30.
+//  Created by 茂木史明 on 2026/04/19.
 //
 
 import SwiftUI
 
 struct ContentView: View {
+    @State private var selectedTab: Tab = .quiz
+    @AppStorage("spotlight.pendingTermId") private var pendingTermId: String = ""
+    @AppStorage("spotlight.pendingLessonId") private var pendingLessonId: String = ""
+
+    enum Tab: Hashable { case learning, quiz }
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        TabView(selection: $selectedTab) {
+            LearningHomeView()
+                .tag(Tab.learning)
+                .tabItem {
+                    Label("学習", systemImage: "book.fill")
+                }
+
+            HomeView()
+                .tag(Tab.quiz)
+                .tabItem {
+                    Label("問題", systemImage: "pencil.and.list.clipboard")
+                }
         }
-        .padding()
+        .tint(Color.jbAccent)
+        .preferredColorScheme(.dark)
+        .onChange(of: pendingTermId) { _, newId in
+            if !newId.isEmpty { selectedTab = .learning }
+        }
+        .onChange(of: pendingLessonId) { _, newId in
+            if !newId.isEmpty { selectedTab = .learning }
+        }
     }
 }
 

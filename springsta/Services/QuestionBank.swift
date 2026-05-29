@@ -1,0 +1,863 @@
+import Foundation
+
+struct ExplanationAuditReport {
+    let quizCount: Int
+    let authoredExplanationCount: Int
+    let placeholderCount: Int
+    let missingCount: Int
+    let duplicateRefCount: Int
+    let orphanedCount: Int
+    let issues: [ExplanationAuditIssue]
+
+    var needsAttentionCount: Int {
+        placeholderCount + missingCount + duplicateRefCount + orphanedCount
+    }
+}
+
+struct ExplanationAuditIssue: Identifiable {
+    enum Kind: String {
+        case placeholder
+        case missing
+        case duplicateRef
+        case orphaned
+    }
+
+    let kind: Kind
+    let quizId: String?
+    let explanationRef: String
+    let level: JavaLevel?
+    let category: String?
+    let question: String?
+    let detail: String
+
+    var id: String {
+        "\(kind.rawValue)-\(quizId ?? "no-quiz")-\(explanationRef)"
+    }
+}
+
+struct QuestionCategoryDistribution: Identifiable {
+    let level: JavaLevel
+    let category: QuizCategory
+    let practiceCount: Int
+    let mockOnlyCount: Int
+
+    var id: String {
+        "\(level.rawValue)-\(category.rawValue)"
+    }
+
+    var totalCount: Int {
+        practiceCount + mockOnlyCount
+    }
+}
+
+struct ContentQualityIssue: Identifiable {
+    enum Kind: String {
+        case duplicateDesignIntent
+        case duplicateCode
+        case repeatedQuestionStem
+        case repeatedChoiceSet
+        case repeatedExplanationNarration
+        case genericExplanationNarration
+        case invalidExplanationHighlight
+        case lowExplanationStepCount
+        case weakChoiceExplanation
+    }
+
+    let kind: Kind
+    let title: String
+    let quizIds: [String]
+    let detail: String
+
+    var id: String {
+        "\(kind.rawValue)-\(quizIds.joined(separator: "-"))-\(title)"
+    }
+}
+
+enum QuestionBank {
+    // static let: 起動時に一度だけ計算してキャッシュ。
+    // 問題数が増えても毎回フィルタ・map・dedup しない。
+    // Quiz.samples は既に contextualizedForPresentation() 済み
+    static let practiceQuizzes: [Quiz] =
+        Quiz.samples.filter { !$0.isMockExamOnly }
+
+    static let mockExamOnlyQuizzes: [Quiz] =
+        QuizExpansion.mockExamOnlyExpansion.map { $0.contextualizedForPresentation() }
+
+    static let allQuizzes: [Quiz] = deduplicated(practiceQuizzes + mockExamOnlyQuizzes)
+
+    static let lessons: [Lesson] = Lesson.samples
+
+    // O(1) id → Quiz 検索用インデックス
+    private static let quizIndex: [String: Quiz] =
+        Dictionary(allQuizzes.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+
+    static func quiz(id: String) -> Quiz? {
+        quizIndex[id]
+    }
+
+    static func quizzes(
+        version: JavaExamVersion = .se17,
+        level: JavaLevel? = nil,
+        category: QuizCategory? = nil
+    ) -> [Quiz] {
+        self.practiceQuizzes.filter { quiz in
+            quiz.examVersion == version &&
+            (level == nil || quiz.level == level) &&
+            (category == nil || quiz.canonicalCategory == category)
+        }
+    }
+
+    static func mockExamEligibleCount(version: JavaExamVersion, level: JavaLevel) -> Int {
+        mockExamPool(version: version, level: level).count
+    }
+
+    @MainActor
+    static func makeSession(
+        mode: QuizPracticeMode,
+        version: JavaExamVersion,
+        level: JavaLevel,
+        progress: ProgressStore
+    ) -> QuizSession? {
+        if mode == .mockExam {
+            return makeMockExamSession(variant: .full, version: version, level: level)
+        }
+
+        let pool = quizzes(version: version, level: level)
+        guard !pool.isEmpty else { return nil }
+
+        let selected: [Quiz]
+        switch mode {
+        case .single:
+            selected = Array(pool.prefix(1))
+        case .daily:
+            selected = Array(pool.shuffled().prefix(min(mode.limit, pool.count)))
+        case .weak:
+            selected = weak(pool, progress: progress, limit: mode.limit)
+        case .mistakes:
+            selected = mistakes(pool, progress: progress, limit: mode.limit)
+        case .unattempted:
+            selected = unattempted(pool, progress: progress, limit: mode.limit)
+        case .mockExam:
+            return nil
+        case .bookmarks:
+            // ブックマークセッションは QuizSession.bookmarks(_:) で個別生成するため非対応
+            return nil
+        }
+
+        let fallback = balanced(pool, limit: mode.limit)
+        let quizzes = selected.isEmpty ? fallback : selected
+        return QuizSession(mode: mode, level: level, version: version, quizzes: quizzes)
+    }
+
+    static func makeMockExamSession(
+        variant: MockExamVariant,
+        version: JavaExamVersion,
+        level: JavaLevel
+    ) -> QuizSession? {
+        let pool = mockExamPool(version: version, level: level)
+        guard !pool.isEmpty else { return nil }
+
+        let spec = MockExamSpec.official(version: version, level: level)
+        let limit = min(spec.questionCount(for: variant), pool.count)
+        let selected = mixedMockExamSelection(
+            practicePool: quizzes(version: version, level: level),
+            exclusivePool: mockExamOnlyQuizzes.filter { $0.examVersion == version && $0.level == level },
+            limit: limit
+        )
+
+        return QuizSession(
+            mode: .mockExam,
+            level: level,
+            version: version,
+            quizzes: selected,
+            customTitle: variant.displayName,
+            mockExamVariant: variant
+        )
+    }
+
+    static func coverage(version: JavaExamVersion, level: JavaLevel) -> [(objective: ExamObjective, count: Int)] {
+        let pool = quizzes(version: version, level: level)
+        return ExamObjectiveCatalog.objectives(for: version, level: level).map { objective in
+            let directObjectiveCount = pool.filter { $0.examObjectiveId == objective.id }.count
+            let count: Int
+            if directObjectiveCount > 0 {
+                count = directObjectiveCount
+            } else {
+                let categories = coverageCategories(for: objective.category)
+                count = pool
+                    .filter { quiz in
+                        guard let category = quiz.canonicalCategory else { return false }
+                        return categories.contains(category)
+                    }
+                    .count
+            }
+            return (objective, count)
+        }
+    }
+
+    static func objective(for quiz: Quiz) -> ExamObjective? {
+        let objectives = ExamObjectiveCatalog.objectives(for: quiz.examVersion, level: quiz.level)
+        if let directObjective = objectives.first(where: { $0.id == quiz.examObjectiveId }) {
+            return directObjective
+        }
+
+        guard let category = quiz.canonicalCategory else { return nil }
+        return objectives.first { objective in
+            coverageCategories(for: objective.category).contains(category)
+        }
+    }
+
+    static func categoryDistribution(
+        version: JavaExamVersion = .se17,
+        level: JavaLevel
+    ) -> [QuestionCategoryDistribution] {
+        let practice = quizzes(version: version, level: level)
+        let mockOnly = mockExamOnlyQuizzes.filter { $0.examVersion == version && $0.level == level }
+        let categories = Set((practice + mockOnly).compactMap(\.canonicalCategory))
+
+        return categories
+            .map { category in
+                QuestionCategoryDistribution(
+                    level: level,
+                    category: category,
+                    practiceCount: practice.filter { $0.canonicalCategory == category }.count,
+                    mockOnlyCount: mockOnly.filter { $0.canonicalCategory == category }.count
+                )
+            }
+            .sorted { lhs, rhs in
+                if lhs.category.displayName == rhs.category.displayName {
+                    return lhs.totalCount > rhs.totalCount
+                }
+                return lhs.category.displayName < rhs.category.displayName
+            }
+    }
+
+    static func contentBalanceIssues(
+        version: JavaExamVersion = .se17,
+        level: JavaLevel,
+        minimumPracticeCount: Int = 5
+    ) -> [String] {
+        categoryDistribution(version: version, level: level).compactMap { bucket in
+            guard bucket.practiceCount > 0 && bucket.practiceCount < minimumPracticeCount else { return nil }
+            return "\(level.displayName) \(bucket.category.displayName): practice \(bucket.practiceCount), mock-only \(bucket.mockOnlyCount)"
+        }
+    }
+
+    static func contentQualityIssues() -> [ContentQualityIssue] {
+        var issues: [ContentQualityIssue] = []
+        let quizzes = allQuizzes
+
+        issues.append(
+            contentsOf: duplicateQuizGroups(
+                kind: .duplicateDesignIntent,
+                title: "designIntentが同一",
+                minimumCount: 2,
+                quizzes: quizzes,
+                key: { normalizedContentKey($0.designIntent) },
+                detail: { key, ids in
+                    "同じ狙いの問題が\(ids.count)件あります。意図が同じでも、片方は問う観点やコードをずらす候補です: \(key)"
+                }
+            )
+        )
+
+        issues.append(
+            contentsOf: duplicateQuizGroups(
+                kind: .duplicateCode,
+                title: "コードが同一",
+                minimumCount: 2,
+                quizzes: quizzes,
+                key: { "\($0.examVersion.rawValue):\(normalizedContentKey($0.code))" },
+                detail: { key, ids in
+                    "同じコードを使う問題が\(ids.count)件あります。通常問題と模試専用で丸かぶりしていないか確認します: \(String(key.prefix(120)))"
+                }
+            )
+        )
+
+        issues.append(
+            contentsOf: duplicateQuizGroups(
+                kind: .repeatedQuestionStem,
+                title: "問題文の言い回しが多用",
+                minimumCount: 10,
+                quizzes: quizzes,
+                key: { normalizedContentKey($0.question) },
+                detail: { key, ids in
+                    "同じ問題文が\(ids.count)件あります。出題の見え方が単調になるため、対象APIや判断ポイントを入れた文へ分散します: \(key)"
+                }
+            )
+        )
+
+        issues.append(
+            contentsOf: duplicateQuizGroups(
+                kind: .repeatedChoiceSet,
+                title: "選択肢セットが多用",
+                minimumCount: 8,
+                quizzes: quizzes,
+                key: { quiz in
+                    quiz.choices
+                        .map { normalizedContentKey($0.text) }
+                        .sorted()
+                        .joined(separator: " | ")
+                },
+                detail: { key, ids in
+                    "同じ選択肢セットが\(ids.count)件あります。正誤だけで解ける癖を避けるため、近い誤答を問題ごとに調整します: \(key)"
+                }
+            )
+        )
+
+        issues.append(contentsOf: repeatedNarrationIssues(quizzes: quizzes))
+        issues.append(contentsOf: explanationTraceQualityIssues(quizzes: quizzes))
+        issues.append(contentsOf: choiceExplanationQualityIssues(quizzes: quizzes))
+        return issues.sorted { lhs, rhs in
+            if lhs.kind.rawValue == rhs.kind.rawValue {
+                return lhs.quizIds.count > rhs.quizIds.count
+            }
+            return lhs.kind.rawValue < rhs.kind.rawValue
+        }
+    }
+
+    static func validationIssues() -> [String] {
+        var issues: [String] = []
+        let ids = allQuizzes.map(\.id)
+        let duplicateIds = Dictionary(grouping: ids, by: { $0 }).filter { $0.value.count > 1 }.keys
+        for id in duplicateIds {
+            issues.append("Duplicate quiz id: \(id)")
+        }
+
+        let explanationIds = Set(Explanation.allSampleIds)
+        for quiz in allQuizzes {
+            if Explanation.sample(for: quiz.explanationRef) == nil {
+                issues.append("\(quiz.id): unresolved explanation \(quiz.explanationRef)")
+            }
+            if quiz.id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                issues.append("Quiz id must not be empty")
+            }
+            if quiz.question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                issues.append("\(quiz.id): question must not be empty")
+            }
+            if quiz.choices.isEmpty {
+                issues.append("\(quiz.id): choices must not be empty")
+            }
+            if quiz.estimatedSeconds <= 0 {
+                issues.append("\(quiz.id): estimatedSeconds must be positive")
+            }
+            let choiceIds = quiz.choices.map(\.id)
+            let duplicateChoiceIds = Dictionary(grouping: choiceIds, by: { $0 })
+                .filter { $0.value.count > 1 }
+                .keys
+            for choiceId in duplicateChoiceIds {
+                issues.append("\(quiz.id): duplicate choice id \(choiceId)")
+            }
+            let correctCount = quiz.choices.filter(\.correct).count
+            if quiz.isMultipleSelect {
+                if correctCount < 2 {
+                    issues.append("\(quiz.id): multiple-select needs at least two correct choices")
+                }
+            } else if correctCount != 1 {
+                issues.append("\(quiz.id): single-select needs exactly one correct choice")
+            }
+            if quiz.canonicalCategory == nil {
+                issues.append("\(quiz.id): unknown category \(quiz.category)")
+            }
+            if let codeTabs = quiz.codeTabs {
+                let tabIds = codeTabs.map(\.id)
+                let duplicateTabIds = Dictionary(grouping: tabIds, by: { $0 })
+                    .filter { $0.value.count > 1 }
+                    .keys
+                for tabId in duplicateTabIds {
+                    issues.append("\(quiz.id): duplicate code tab id \(tabId)")
+                }
+                let filenames = codeTabs.map(\.filename)
+                let duplicateFilenames = Dictionary(grouping: filenames, by: { $0 })
+                    .filter { $0.value.count > 1 }
+                    .keys
+                for filename in duplicateFilenames {
+                    issues.append("\(quiz.id): duplicate code tab filename \(filename)")
+                }
+            }
+        }
+
+        let explanationRefs = allQuizzes.map(\.explanationRef)
+        let duplicateExplanationRefs = Dictionary(grouping: explanationRefs, by: { $0 })
+            .filter { $0.value.count > 1 }
+            .keys
+        for ref in duplicateExplanationRefs {
+            issues.append("Duplicate explanation ref: \(ref)")
+        }
+
+        for ref in explanationIds.subtracting(Set(explanationRefs)) {
+            issues.append("Authored explanation is not linked from any quiz: \(ref)")
+        }
+
+        for lesson in lessons {
+            for id in lesson.relatedQuizIds where quiz(id: id) == nil {
+                issues.append("\(lesson.id): missing related quiz \(id)")
+            }
+        }
+
+        issues.append(contentsOf: boundaryValidationIssues())
+        return issues
+    }
+
+    static func explanationAuditReport() -> ExplanationAuditReport {
+        let quizzes = allQuizzes
+        let authoredRefs = Explanation.authoredSampleIds
+        let quizRefs = quizzes.map(\.explanationRef)
+        let quizRefSet = Set(quizRefs)
+        let duplicateRefs = Set(
+            Dictionary(grouping: quizRefs, by: { $0 })
+                .filter { $0.value.count > 1 }
+                .keys
+        )
+
+        var issues: [ExplanationAuditIssue] = []
+
+        for quiz in quizzes.sorted(by: { $0.id < $1.id }) {
+            if duplicateRefs.contains(quiz.explanationRef) {
+                issues.append(
+                    ExplanationAuditIssue(
+                        kind: .duplicateRef,
+                        quizId: quiz.id,
+                        explanationRef: quiz.explanationRef,
+                        level: quiz.level,
+                        category: quiz.categoryDisplayName,
+                        question: quiz.question,
+                        detail: "複数の問題が同じexplanationRefを共有しています。問題ごとに固有のrefへ分ける必要があります。"
+                    )
+                )
+            }
+
+            if Explanation.sample(for: quiz.explanationRef) == nil {
+                issues.append(
+                    ExplanationAuditIssue(
+                        kind: .missing,
+                        quizId: quiz.id,
+                        explanationRef: quiz.explanationRef,
+                        level: quiz.level,
+                        category: quiz.categoryDisplayName,
+                        question: quiz.question,
+                        detail: "Explanation.sample(for:)で解決できません。refの打ち間違いか、問題がsamples未登録の可能性があります。"
+                    )
+                )
+            } else if !authoredRefs.contains(quiz.explanationRef) {
+                issues.append(
+                    ExplanationAuditIssue(
+                        kind: .placeholder,
+                        quizId: quiz.id,
+                        explanationRef: quiz.explanationRef,
+                        level: quiz.level,
+                        category: quiz.categoryDisplayName,
+                        question: quiz.question,
+                        detail: "手書き解説がないため、quickTraceの汎用3ステップ解説にフォールバックしています。"
+                    )
+                )
+            }
+        }
+
+        for ref in authoredRefs.subtracting(quizRefSet).sorted() {
+            issues.append(
+                ExplanationAuditIssue(
+                    kind: .orphaned,
+                    quizId: nil,
+                    explanationRef: ref,
+                    level: nil,
+                    category: nil,
+                    question: nil,
+                    detail: "手書き解説は存在しますが、このrefを使っている問題がありません。samples登録漏れか、ref変更漏れを確認してください。"
+                )
+            )
+        }
+
+        return ExplanationAuditReport(
+            quizCount: quizzes.count,
+            authoredExplanationCount: quizzes.filter { authoredRefs.contains($0.explanationRef) }.count,
+            placeholderCount: issues.filter { $0.kind == .placeholder }.count,
+            missingCount: issues.filter { $0.kind == .missing }.count,
+            duplicateRefCount: issues.filter { $0.kind == .duplicateRef }.count,
+            orphanedCount: issues.filter { $0.kind == .orphaned }.count,
+            issues: issues
+        )
+    }
+
+    private static func balanced(_ pool: [Quiz], limit: Int) -> [Quiz] {
+        let grouped = Dictionary(grouping: pool) { $0.canonicalCategoryRawValue }
+        let orderedGroups = grouped.keys.sorted()
+        var result: [Quiz] = []
+        var cursors = Dictionary(uniqueKeysWithValues: orderedGroups.map { ($0, 0) })
+        let sortedGroups = grouped.mapValues { $0.sorted { $0.id < $1.id } }
+
+        while result.count < min(limit, pool.count) {
+            var addedThisRound = false
+            for category in orderedGroups {
+                guard
+                    let items = sortedGroups[category],
+                    let cursor = cursors[category],
+                    cursor < items.count
+                else { continue }
+                result.append(items[cursor])
+                cursors[category] = cursor + 1
+                addedThisRound = true
+                if result.count >= min(limit, pool.count) { break }
+            }
+            if !addedThisRound { break }
+        }
+
+        return result
+    }
+
+    private static func mockExamPool(version: JavaExamVersion, level: JavaLevel) -> [Quiz] {
+        deduplicated(
+            quizzes(version: version, level: level) +
+            mockExamOnlyQuizzes.filter { $0.examVersion == version && $0.level == level }
+        )
+    }
+
+    private static func boundaryValidationIssues() -> [String] {
+        var issues: [String] = []
+
+        for version in JavaExamVersion.allCases {
+            for level in JavaLevel.allCases {
+                let poolCount = mockExamPool(version: version, level: level).count
+                guard poolCount > 0 else { continue }
+
+                let spec = MockExamSpec.official(version: version, level: level)
+                for variant in MockExamVariant.allCases {
+                    let requested = spec.questionCount(for: variant)
+                    if requested <= 0 {
+                        issues.append("\(version.displayName) \(level.displayName) \(variant.displayName): requested question count must be positive")
+                    }
+
+                    guard let session = makeMockExamSession(variant: variant, version: version, level: level) else {
+                        issues.append("\(version.displayName) \(level.displayName) \(variant.displayName): session could not be created")
+                        continue
+                    }
+
+                    let expected = min(requested, poolCount)
+                    if session.quizzes.count != expected {
+                        issues.append("\(version.displayName) \(level.displayName) \(variant.displayName): expected \(expected) questions, got \(session.quizzes.count)")
+                    }
+
+                    let selectedIds = session.quizzes.map(\.id)
+                    if Set(selectedIds).count != selectedIds.count {
+                        issues.append("\(version.displayName) \(level.displayName) \(variant.displayName): duplicate quiz selected")
+                    }
+                }
+            }
+        }
+
+        return issues
+    }
+
+    private static func mixedMockExamSelection(
+        practicePool: [Quiz],
+        exclusivePool: [Quiz],
+        limit: Int
+    ) -> [Quiz] {
+        guard limit > 0 else { return [] }
+        guard !exclusivePool.isEmpty else {
+            return balancedMockExamSelection(from: practicePool, limit: min(limit, practicePool.count)).shuffled()
+        }
+
+        let exclusiveTarget = min(exclusivePool.count, max(1, Int((Double(limit) * 0.25).rounded(.down))))
+        let exclusive = balancedMockExamSelection(from: exclusivePool, limit: exclusiveTarget)
+        let practiceTarget = max(0, limit - exclusive.count)
+        let practice = balancedMockExamSelection(
+            from: practicePool,
+            limit: min(practiceTarget, practicePool.count),
+            excludingIds: Set(exclusive.map(\.id)),
+            excludingVariantGroups: variantGroups(in: exclusive)
+        )
+
+        var selected = deduplicated(exclusive + practice)
+        if selected.count < limit {
+            let selectedIds = Set(selected.map(\.id))
+            let fill = balancedMockExamSelection(
+                from: deduplicated(practicePool + exclusivePool),
+                limit: limit - selected.count,
+                excludingIds: selectedIds,
+                excludingVariantGroups: variantGroups(in: selected)
+            )
+            selected.append(contentsOf: fill)
+        }
+
+        if selected.count < limit {
+            let selectedIds = Set(selected.map(\.id))
+            let fill = deduplicated(practicePool + exclusivePool)
+                .filter { !selectedIds.contains($0.id) }
+                .shuffled()
+                .prefix(limit - selected.count)
+            selected.append(contentsOf: fill)
+        }
+
+        return Array(selected.shuffled().prefix(limit))
+    }
+
+    private static func balancedMockExamSelection(
+        from candidates: [Quiz],
+        limit: Int,
+        excludingIds: Set<String> = [],
+        excludingVariantGroups: Set<String> = []
+    ) -> [Quiz] {
+        guard limit > 0 else { return [] }
+
+        var usedIds = excludingIds
+        var usedVariantGroups = excludingVariantGroups
+        let grouped = Dictionary(
+            grouping: candidates
+                .shuffled()
+                .filter { !usedIds.contains($0.id) },
+            by: { mockExamBalanceKey(for: $0) }
+        )
+        let orderedKeys = grouped.keys.sorted { lhs, rhs in
+            let lhsCount = grouped[lhs]?.count ?? 0
+            let rhsCount = grouped[rhs]?.count ?? 0
+            if lhsCount == rhsCount { return lhs < rhs }
+            return lhsCount > rhsCount
+        }
+        var cursors = Dictionary(uniqueKeysWithValues: orderedKeys.map { ($0, 0) })
+        var result: [Quiz] = []
+
+        while result.count < min(limit, candidates.count) {
+            var addedThisRound = false
+
+            for key in orderedKeys {
+                guard let items = grouped[key] else { continue }
+                var cursor = cursors[key] ?? 0
+
+                while cursor < items.count {
+                    let quiz = items[cursor]
+                    cursor += 1
+
+                    guard !usedIds.contains(quiz.id) else { continue }
+                    if let variantGroupId = quiz.variantGroupId,
+                       usedVariantGroups.contains(variantGroupId) {
+                        continue
+                    }
+
+                    result.append(quiz)
+                    usedIds.insert(quiz.id)
+                    if let variantGroupId = quiz.variantGroupId {
+                        usedVariantGroups.insert(variantGroupId)
+                    }
+                    addedThisRound = true
+                    break
+                }
+
+                cursors[key] = cursor
+                if result.count >= limit { break }
+            }
+
+            if !addedThisRound { break }
+        }
+
+        return result
+    }
+
+    private static func mockExamBalanceKey(for quiz: Quiz) -> String {
+        if quiz.examObjectiveId != "unmapped" {
+            return quiz.examObjectiveId
+        }
+        return quiz.canonicalCategoryRawValue
+    }
+
+    private static func variantGroups(in quizzes: [Quiz]) -> Set<String> {
+        Set(quizzes.compactMap(\.variantGroupId))
+    }
+
+    private static func deduplicated(_ quizzes: [Quiz]) -> [Quiz] {
+        var seenIds = Set<String>()
+        return quizzes.filter { quiz in
+            seenIds.insert(quiz.id).inserted
+        }
+    }
+
+    private static func duplicateQuizGroups(
+        kind: ContentQualityIssue.Kind,
+        title: String,
+        minimumCount: Int,
+        quizzes: [Quiz],
+        key: (Quiz) -> String,
+        detail: (String, [String]) -> String
+    ) -> [ContentQualityIssue] {
+        Dictionary(grouping: quizzes, by: key)
+            .filter { !$0.key.isEmpty && $0.value.count >= minimumCount }
+            .map { key, group in
+                let ids = group.map(\.id).sorted()
+                return ContentQualityIssue(
+                    kind: kind,
+                    title: title,
+                    quizIds: ids,
+                    detail: detail(key, ids)
+                )
+            }
+    }
+
+    private static func repeatedNarrationIssues(quizzes: [Quiz]) -> [ContentQualityIssue] {
+        var ownersByNarration: [String: Set<String>] = [:]
+
+        for quiz in quizzes {
+            guard let explanation = Explanation.sample(for: quiz.explanationRef) else { continue }
+            for step in explanation.steps {
+                let key = normalizedContentKey(step.narration)
+                guard key.count >= 20 else { continue }
+                ownersByNarration[key, default: []].insert(quiz.id)
+            }
+        }
+
+        return ownersByNarration
+            .filter { $0.value.count >= 3 }
+            .map { narration, ownerIds in
+                let ids = ownerIds.sorted()
+                return ContentQualityIssue(
+                    kind: .repeatedExplanationNarration,
+                    title: "解説文の同一フレーズが多用",
+                    quizIds: ids,
+                    detail: "同じ解説文が\(ids.count)問で使われています。コード固有の変数・分岐・出力理由へ寄せる候補です: \(narration)"
+                )
+            }
+    }
+
+    private static func explanationTraceQualityIssues(quizzes: [Quiz]) -> [ContentQualityIssue] {
+        let genericNeedles = [
+            "このコードを上から順に",
+            "出力またはコンパイル結果を判断します",
+            "型・参照・APIの評価順序を確認します",
+            "まずコード上の宣言",
+            "選択肢の正誤は",
+            "判断に効く行"
+        ]
+        var issues: [ContentQualityIssue] = []
+
+        for quiz in quizzes {
+            guard let explanation = Explanation.sample(for: quiz.explanationRef) else { continue }
+
+            if explanation.steps.count < 2 {
+                issues.append(
+                    ContentQualityIssue(
+                        kind: .lowExplanationStepCount,
+                        title: "解説ステップ不足",
+                        quizIds: [quiz.id],
+                        detail: "実行の起点と判断結果を追うには最低2ステップ必要です。現在は\(explanation.steps.count)ステップです。"
+                    )
+                )
+            }
+
+            let lineCount = max(quiz.code.components(separatedBy: .newlines).count, 1)
+            let invalidLines = explanation.steps
+                .flatMap(\.highlightLines)
+                .filter { $0 < 1 || $0 > lineCount }
+            if !invalidLines.isEmpty {
+                issues.append(
+                    ContentQualityIssue(
+                        kind: .invalidExplanationHighlight,
+                        title: "解説ハイライト行が範囲外",
+                        quizIds: [quiz.id],
+                        detail: "コードは\(lineCount)行ですが、解説が範囲外の行 \(invalidLines.map(String.init).joined(separator: ", ")) を参照しています。"
+                    )
+                )
+            }
+
+            let genericSteps = explanation.steps.filter { step in
+                genericNeedles.contains { step.narration.contains($0) }
+            }
+            if !genericSteps.isEmpty {
+                issues.append(
+                    ContentQualityIssue(
+                        kind: .genericExplanationNarration,
+                        title: "解説文が汎用的",
+                        quizIds: [quiz.id],
+                        detail: "コード固有の値・分岐・API名に寄せた説明へ更新します: \(genericSteps.map(\.narration).joined(separator: " / "))"
+                    )
+                )
+            }
+        }
+
+        return issues
+    }
+
+    private static func choiceExplanationQualityIssues(quizzes: [Quiz]) -> [ContentQualityIssue] {
+        quizzes.compactMap { quiz in
+            let weakChoices = quiz.choices.filter {
+                $0.explanation.trimmingCharacters(in: .whitespacesAndNewlines).count < 12
+            }
+            guard !weakChoices.isEmpty else { return nil }
+
+            let detail = weakChoices
+                .map { "\($0.id): \($0.text) -> \($0.explanation)" }
+                .joined(separator: " / ")
+            return ContentQualityIssue(
+                kind: .weakChoiceExplanation,
+                title: "選択肢説明が短すぎる",
+                quizIds: [quiz.id],
+                detail: "誤答を消す理由まで書きます: \(detail)"
+            )
+        }
+    }
+
+    private static func normalizedContentKey(_ text: String) -> String {
+        // \s は \n, \r, \t, スペースをすべて含むので重複指定は不要
+        text
+            .replacingOccurrences(of: "`", with: "")
+            .replacingOccurrences(of: "　", with: " ")
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    @MainActor
+    private static func weak(_ pool: [Quiz], progress: ProgressStore, limit: Int) -> [Quiz] {
+        let weakTags = progress.weakTags(limit: 8).map(\.tag)
+        guard !weakTags.isEmpty else {
+            return mistakes(pool, progress: progress, limit: limit)
+        }
+        let weakTagSet = Set(weakTags)
+        // statsIndex: O(n) 一括構築で以降の sorted を O(1) lookup に
+        let statsIndex = progress.statsIndex(for: pool.map(\.id))
+        return pool
+            .filter { quiz in quiz.tags.contains(where: weakTagSet.contains) }
+            .sorted { lhs, rhs in
+                let l = statsIndex[lhs.id] ?? .empty
+                let r = statsIndex[rhs.id] ?? .empty
+                if l.accuracy == r.accuracy { return lhs.id < rhs.id }
+                return l.accuracy < r.accuracy
+            }
+            .prefix(limit)
+            .map { $0 }
+    }
+
+    @MainActor
+    private static func mistakes(_ pool: [Quiz], progress: ProgressStore, limit: Int) -> [Quiz] {
+        let statsIndex = progress.statsIndex(for: pool.map(\.id))
+        return pool
+            .filter { statsIndex[$0.id]?.needsReview ?? false }
+            .sorted { lhs, rhs in
+                let lDate = statsIndex[lhs.id]?.latest?.answeredAt ?? .distantPast
+                let rDate = statsIndex[rhs.id]?.latest?.answeredAt ?? .distantPast
+                return lDate < rDate
+            }
+            .prefix(limit)
+            .map { $0 }
+    }
+
+    @MainActor
+    private static func unattempted(_ pool: [Quiz], progress: ProgressStore, limit: Int) -> [Quiz] {
+        pool
+            .filter { !progress.stats(for: $0.id).isAnswered }
+            .sorted { $0.id < $1.id }
+            .prefix(limit)
+            .map { $0 }
+    }
+
+    private static func coverageCategories(for category: QuizCategory) -> Set<QuizCategory> {
+        switch category {
+        case .dataTypes:
+            return [.dataTypes, .string]
+        case .classes:
+            return [.classes, .overloadResolution]
+        case .collections:
+            return [.collections, .generics]
+        case .lambdaStreams:
+            return [.lambdaStreams, .optionalApi]
+        default:
+            return [category]
+        }
+    }
+}
