@@ -4,7 +4,7 @@ extension Quiz {
     static let samples: [Quiz] = {
         let all = foundationQuizzes + practiceQuizzes + boot3PlatformQuizzes + errorReadingQuizzes
             + Quiz.diQuizzes + Quiz.webMvcQuizzes + Quiz.jpaQuizzes + Quiz.configurationQuizzes
-            + Quiz.testingQuizzes
+            + Quiz.testingQuizzes + Quiz.transactionQuizzes
         var seenIds = Set<String>()
         return all
             .filter { seenIds.insert($0.id).inserted }
