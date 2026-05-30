@@ -3,6 +3,7 @@ import Foundation
 extension Quiz {
     static let samples: [Quiz] = {
         let all = foundationQuizzes + practiceQuizzes + boot3PlatformQuizzes + errorReadingQuizzes
+            + Quiz.diQuizzes
         var seenIds = Set<String>()
         return all
             .filter { seenIds.insert($0.id).inserted }
@@ -525,7 +526,7 @@ class UserController {
         )
     ]
 
-    private static func quiz(
+    static func quiz(
         id: String,
         level: SpringTrack,
         version: SpringBootVersion = .boot3,
@@ -562,7 +563,7 @@ class UserController {
         )
     }
 
-    private static func choice(
+    static func choice(
         _ id: String,
         _ text: String,
         correct: Bool = false,
