@@ -7,7 +7,7 @@ extension Quiz {
             + Quiz.testingQuizzes + Quiz.transactionQuizzes + Quiz.securityQuizzes
             + Quiz.observabilityQuizzes + Quiz.deploymentQuizzes + Quiz.architectureQuizzes
             + Quiz.errorReading2Quizzes + Quiz.webFluxQuizzes + Quiz.restClientQuizzes
-            + Quiz.batchQuizzes + Quiz.multiFileTraceQuizzes
+            + Quiz.batchQuizzes + Quiz.multiFileTraceQuizzes + Quiz.validation2Quizzes
         var seenIds = Set<String>()
         return all
             .filter { seenIds.insert($0.id).inserted }
