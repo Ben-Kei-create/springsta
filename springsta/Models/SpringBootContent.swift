@@ -6,6 +6,7 @@ extension Quiz {
             + Quiz.diQuizzes + Quiz.webMvcQuizzes + Quiz.jpaQuizzes + Quiz.configurationQuizzes
             + Quiz.testingQuizzes + Quiz.transactionQuizzes + Quiz.securityQuizzes
             + Quiz.observabilityQuizzes + Quiz.deploymentQuizzes + Quiz.architectureQuizzes
+            + Quiz.errorReading2Quizzes
         var seenIds = Set<String>()
         return all
             .filter { seenIds.insert($0.id).inserted }
