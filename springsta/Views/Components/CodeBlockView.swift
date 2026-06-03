@@ -89,16 +89,26 @@ struct CodeBlockView: View {
             .accessibilityLabel(didCopyCode ? "コードをコピーしました" : "コードをコピー")
 
             Button(action: { isExpanded = true }) {
-                Image(systemName: "arrow.up.left.and.arrow.down.right")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color.jbSubtext)
-                    .frame(width: 24, height: 22)
-                    .background(
-                        RoundedRectangle(cornerRadius: 5)
-                            .stroke(Color.jbBorder, lineWidth: 1)
-                    )
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 10, weight: .semibold))
+                    Text("全画面")
+                        .font(.system(size: 10, weight: .bold))
+                }
+                .foregroundStyle(Color.jbAccent)
+                .padding(.horizontal, 8)
+                .frame(height: 22)
+                .background(
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(Color.jbAccent.opacity(0.12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5)
+                                .stroke(Color.jbAccent.opacity(0.45), lineWidth: 1)
+                        )
+                )
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("コードを全画面表示")
         }
         .padding(.horizontal, Spacing.md)
         .padding(.vertical, Spacing.sm)

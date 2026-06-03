@@ -104,6 +104,17 @@ struct OnboardingView: View {
             }
             .padding(.horizontal, Spacing.xl)
 
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.jbSubtext)
+                Text("Java基礎（クラス・メソッド・型）が読める方向け")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.jbSubtext)
+                Spacer()
+            }
+            .padding(.horizontal, Spacing.xl)
+
             Spacer()
 
             nextButton(label: "はじめる") { advance() }

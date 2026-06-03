@@ -322,6 +322,8 @@ struct HomeView: View {
         switch id {
         case .commandCenter:
             commandCenter
+        case .categoryProgress:
+            categoryProgressSection
         case .heatmap:
             ActivityHeatmapView(
                 counts: progress.recentDailyCounts(days: ProgressStore.historyWindowDays)
@@ -338,6 +340,43 @@ struct HomeView: View {
             )
             .id(selectedLevel)
             .transition(.opacity.combined(with: .move(edge: .trailing)))
+        }
+    }
+
+    private struct CategoryStat {
+        let category: QuizCategory
+        let answered: Int
+        let total: Int
+        var progress: Double { total > 0 ? min(1.0, Double(answered) / Double(total)) : 0 }
+    }
+
+    private func computeCategoryStats() -> [CategoryStat] {
+        let allQuizzes = QuestionBank.quizzes(version: selectedVersion, level: selectedLevel)
+        let byCategory = Dictionary(grouping: allQuizzes) { $0.category }
+        var answeredByCategory: [String: Set<String>] = [:]
+        for record in progress.answerHistory where record.level == selectedLevel {
+            answeredByCategory[record.category, default: []].insert(record.quizId)
+        }
+        return QuizCategory.allCases.compactMap { cat in
+            guard let quizzes = byCategory[cat], !quizzes.isEmpty else { return nil }
+            let answered = answeredByCategory[cat.rawValue]?.count ?? 0
+            return CategoryStat(category: cat, answered: answered, total: quizzes.count)
+        }
+    }
+
+    private var categoryProgressSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            SectionHeader(icon: "square.grid.2x2", title: "カテゴリ別進捗", tint: Color.jbAccent)
+            let stats = computeCategoryStats()
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Spacing.sm) {
+                    ForEach(stats, id: \.category.rawValue) { stat in
+                        CategoryProgressChip(stat: stat)
+                    }
+                }
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, 2)
+            }
         }
     }
 
@@ -381,16 +420,68 @@ private struct SectionHeader: View {
     }
 }
 
+// MARK: - CategoryProgressChip
+
+private struct CategoryProgressChip: View {
+    let stat: HomeView.CategoryStat
+
+    private var progressColor: Color {
+        if stat.progress >= 0.8 { return Color.jbSuccess }
+        if stat.progress >= 0.4 { return Color.jbAccent }
+        return Color.jbSubtext
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(stat.category.displayName)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Color.jbText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.jbBorder)
+                        .frame(height: 3)
+                    Capsule()
+                        .fill(progressColor)
+                        .frame(width: geo.size.width * stat.progress, height: 3)
+                        .animation(.jbSmooth, value: stat.progress)
+                }
+            }
+            .frame(height: 3)
+
+            Text("\(stat.answered)/\(stat.total)問")
+                .font(.system(size: 10).monospacedDigit())
+                .foregroundStyle(Color.jbSubtext)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(width: 108)
+        .background(
+            RoundedRectangle(cornerRadius: Radius.sm)
+                .fill(Color.jbCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: Radius.sm)
+                        .stroke(stat.progress > 0 ? progressColor.opacity(0.45) : Color.jbBorder, lineWidth: 1)
+                )
+        )
+    }
+}
+
 // MARK: - HomeSectionID
 
 enum HomeSectionID: String, CaseIterable, Hashable {
     case commandCenter
+    case categoryProgress
     case heatmap
     case practiceModes
     case levelSection
 
     static let fixedOrder: [HomeSectionID] = [
         .commandCenter,
+        .categoryProgress,
         .heatmap,
         .practiceModes,
         .levelSection
@@ -399,6 +490,7 @@ enum HomeSectionID: String, CaseIterable, Hashable {
     var displayTitle: String {
         switch self {
         case .commandCenter: return "ステータス"
+        case .categoryProgress: return "カテゴリ別進捗"
         case .heatmap: return "学習マップ"
         case .practiceModes: return "練習を開始"
         case .levelSection: return "問題リスト"
