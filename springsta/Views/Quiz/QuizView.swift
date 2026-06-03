@@ -183,6 +183,8 @@ struct QuizView: View {
                         .fill(Color.jbBackground)
                 )
 
+            practiceHint
+
             actionButtons
             bookmarkAndReportRow
         }
@@ -190,6 +192,45 @@ struct QuizView: View {
         .background(
             RoundedRectangle(cornerRadius: Radius.md)
                 .fill(Color.jbCard)
+        )
+    }
+
+    // MARK: Practice hint
+
+    private var practiceHint: some View {
+        let tags = vm.quiz.tags.prefix(2)
+        return HStack(alignment: .top, spacing: Spacing.sm) {
+            Image(systemName: "pencil.and.outline")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.jbAccentAlt)
+                .padding(.top, 1)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("実際に書いてみよう")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color.jbAccentAlt)
+                if tags.isEmpty {
+                    Text("このパターンを自分の環境で実装して動作を確認してみてください。")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.jbSubtext)
+                        .lineSpacing(2)
+                } else {
+                    Text("\(tags.joined(separator: " / ")) を使ったコードを書いて、実際の動作を確かめてみましょう。")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.jbSubtext)
+                        .lineSpacing(2)
+                }
+            }
+        }
+        .padding(Spacing.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: Radius.sm)
+                .fill(Color.jbAccentAlt.opacity(0.07))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Radius.sm)
+                        .stroke(Color.jbAccentAlt.opacity(0.25), lineWidth: 1)
+                )
         )
     }
 

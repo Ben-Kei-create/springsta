@@ -5,11 +5,18 @@ struct PremiumPaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var purchase = PurchaseManager.shared
 
-    private let features: [(icon: String, color: Color, title: String, body: String)] = [
-        ("graduationcap.fill", Color.jbAccentDeep, "総合演習", "実務想定・時間制限・採点付き"),
-        ("star.fill", Color.jbAccent, "実践トラック", "設計・Security・運用まで解放"),
-        ("chart.bar.fill", Color.jbAccentAlt, "実践統計", "正答率・弱点分野を可視化"),
-        ("icloud.fill", Color.jbSuccess, "クラウド同期", "複数デバイス間で進捗を共有"),
+    private let freeFeatures: [(icon: String, title: String)] = [
+        ("checkmark.circle.fill", "基礎トラック全問（200問以上）"),
+        ("checkmark.circle.fill", "カテゴリ別進捗・ヒートマップ"),
+        ("checkmark.circle.fill", "コード全画面・ファイル横断トレース"),
+        ("checkmark.circle.fill", "ブックマーク・復習キュー"),
+    ]
+
+    private let premiumFeatures: [(icon: String, color: Color, title: String, body: String)] = [
+        ("star.fill",           Color.jbAccent,     "実践トラック",  "設計・Security・運用まで300問以上"),
+        ("graduationcap.fill",  Color.jbAccentDeep, "総合演習",      "実務想定・時間制限・採点付きMock"),
+        ("chart.bar.fill",      Color.jbAccentAlt,  "実践統計",      "正答率・弱点分野を詳細に可視化"),
+        ("icloud.fill",         Color.jbSuccess,    "クラウド同期",  "複数デバイス間で進捗を共有"),
     ]
 
     var body: some View {
@@ -20,7 +27,7 @@ struct PremiumPaywallView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: Spacing.lg) {
                         heroSection
-                        featuresSection
+                        comparisonSection
                         purchaseSection
                         footerNote
                     }
@@ -77,35 +84,80 @@ struct PremiumPaywallView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: Features
+    // MARK: Comparison
 
-    private var featuresSection: some View {
-        VStack(spacing: Spacing.xs) {
-            ForEach(features, id: \.title) { f in
-                HStack(spacing: Spacing.md) {
-                    Image(systemName: f.icon)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(f.color)
-                        .frame(width: 36, height: 36)
-                        .background(Circle().fill(f.color.opacity(0.12)))
+    private var comparisonSection: some View {
+        VStack(spacing: Spacing.sm) {
+            // Free tier
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Label("無料で使える機能", systemImage: "gift")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Color.jbSubtext)
+                    .padding(.bottom, 2)
 
-                    VStack(alignment: .leading, spacing: 2) {
+                ForEach(freeFeatures, id: \.title) { f in
+                    HStack(spacing: Spacing.sm) {
+                        Image(systemName: f.icon)
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(Color.jbSuccess.opacity(0.7))
+                            .frame(width: 20)
                         Text(f.title)
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(Color.jbText)
-                        Text(f.body)
-                            .font(.system(size: 12))
+                            .font(.system(size: 13))
                             .foregroundStyle(Color.jbSubtext)
                     }
-
-                    Spacer()
-
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Color.jbSuccess)
                 }
-                .padding(Spacing.sm)
-                .jbCard()
+            }
+            .padding(Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: Radius.md)
+                    .fill(Color.jbCard)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Radius.md)
+                            .stroke(Color.jbBorder, lineWidth: 1)
+                    )
+            )
+
+            HStack(spacing: Spacing.sm) {
+                VStack { Divider().background(Color.jbBorder) }
+                Image(systemName: "crown.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.jbAccent)
+                Text("プレミアムで解放")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color.jbAccent)
+                VStack { Divider().background(Color.jbBorder) }
+            }
+            .padding(.vertical, 2)
+
+            // Premium features
+            VStack(spacing: Spacing.xs) {
+                ForEach(premiumFeatures, id: \.title) { f in
+                    HStack(spacing: Spacing.md) {
+                        Image(systemName: f.icon)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(f.color)
+                            .frame(width: 36, height: 36)
+                            .background(Circle().fill(f.color.opacity(0.12)))
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(f.title)
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(Color.jbText)
+                            Text(f.body)
+                                .font(.system(size: 12))
+                                .foregroundStyle(Color.jbSubtext)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "lock.open.fill")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Color.jbAccent)
+                    }
+                    .padding(Spacing.sm)
+                    .jbCard()
+                }
             }
         }
     }
@@ -114,7 +166,6 @@ struct PremiumPaywallView: View {
 
     private var purchaseSection: some View {
         VStack(spacing: Spacing.sm) {
-            // Price display
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(purchase.product?.displayPrice ?? "¥900")
                     .font(.system(size: 36, weight: .heavy).monospacedDigit())
@@ -124,14 +175,12 @@ struct PremiumPaywallView: View {
                     .foregroundStyle(Color.jbSubtext)
             }
 
-            // Purchase button
             Button(action: {
                 Task { await purchase.purchase() }
             }) {
                 Group {
                     if purchase.isLoading {
-                        ProgressView()
-                            .tint(.white)
+                        ProgressView().tint(.white)
                     } else {
                         Text("購入する")
                             .font(.system(size: 17, weight: .bold))
@@ -148,7 +197,6 @@ struct PremiumPaywallView: View {
             .buttonStyle(.plain)
             .disabled(purchase.isLoading)
 
-            // Restore button
             Button(action: {
                 Task { await purchase.restorePurchases() }
             }) {
