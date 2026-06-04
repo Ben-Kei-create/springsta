@@ -224,30 +224,57 @@ struct QuizView: View {
 
     // MARK: Practice hint
 
+    @State private var didCopyTemplate = false
+
     private var practiceHint: some View {
         let tags = vm.quiz.tags.prefix(2)
-        return HStack(alignment: .top, spacing: Spacing.sm) {
-            Image(systemName: "pencil.and.outline")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Color.jbAccentAlt)
-                .padding(.top, 1)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text("実際に書いてみよう")
-                    .font(.system(size: 12, weight: .bold))
+        let template = practiceTemplate
+        return VStack(alignment: .leading, spacing: Spacing.sm) {
+            HStack(alignment: .top, spacing: Spacing.sm) {
+                Image(systemName: "pencil.and.outline")
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color.jbAccentAlt)
-                if tags.isEmpty {
-                    Text("このパターンを自分の環境で実装して動作を確認してみてください。")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Color.jbSubtext)
-                        .lineSpacing(2)
-                } else {
-                    Text("\(tags.joined(separator: " / ")) を使ったコードを書いて、実際の動作を確かめてみましょう。")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Color.jbSubtext)
-                        .lineSpacing(2)
+                    .padding(.top, 1)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("実際に書いてみよう")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color.jbAccentAlt)
+                    if tags.isEmpty {
+                        Text("このパターンを自分の環境で実装して動作を確認してみてください。")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.jbSubtext)
+                            .lineSpacing(2)
+                    } else {
+                        Text("\(tags.joined(separator: " / ")) のコードをコピーして、IntelliJ や VS Code で動かしてみましょう。")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Color.jbSubtext)
+                            .lineSpacing(2)
+                    }
                 }
             }
+
+            Button(action: { copyTemplate(template) }) {
+                HStack(spacing: 5) {
+                    Image(systemName: didCopyTemplate ? "checkmark" : "doc.on.doc")
+                        .font(.system(size: 11, weight: .bold))
+                        .contentTransition(.symbolEffect(.replace))
+                    Text(didCopyTemplate ? "コピーしました" : "コードをコピーして試す")
+                        .font(.system(size: 12, weight: .bold))
+                }
+                .foregroundStyle(didCopyTemplate ? Color.jbSuccess : Color.jbAccentAlt)
+                .frame(maxWidth: .infinity)
+                .frame(height: 34)
+                .background(
+                    RoundedRectangle(cornerRadius: Radius.sm)
+                        .fill((didCopyTemplate ? Color.jbSuccess : Color.jbAccentAlt).opacity(0.1))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Radius.sm)
+                                .stroke((didCopyTemplate ? Color.jbSuccess : Color.jbAccentAlt).opacity(0.35), lineWidth: 1)
+                        )
+                )
+            }
+            .buttonStyle(.plain)
         }
         .padding(Spacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -259,6 +286,29 @@ struct QuizView: View {
                         .stroke(Color.jbAccentAlt.opacity(0.25), lineWidth: 1)
                 )
         )
+        .animation(.jbFast, value: didCopyTemplate)
+    }
+
+    private var practiceTemplate: String {
+        let code = vm.quiz.code
+        if !code.isEmpty { return code }
+        if let first = vm.quiz.codeTabs?.first { return first.code }
+        let tags = vm.quiz.tags.prefix(3).joined(separator: ", ")
+        return """
+// キーワード: \(tags.isEmpty ? vm.quiz.categoryDisplayName : tags)
+// Spring Boot プロジェクトで試してみましょう
+// https://start.spring.io でプロジェクトを生成できます
+"""
+    }
+
+    private func copyTemplate(_ text: String) {
+        UIPasteboard.general.string = text
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        didCopyTemplate = true
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.5))
+            didCopyTemplate = false
+        }
     }
 
     // MARK: Action buttons

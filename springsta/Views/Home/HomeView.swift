@@ -385,12 +385,22 @@ struct HomeView: View {
         let pool = QuestionBank.quizzes(version: selectedVersion, level: selectedLevel)
             .filter { $0.canonicalCategory == stat.category }
         guard !pool.isEmpty else { return }
+
+        // 優先順位: ①間違い済み → ②未回答 → ③正解済み（再確認）
+        let statsIndex = progress.statsIndex(for: pool.map(\.id))
+        let wrong     = pool.filter { statsIndex[$0.id]?.latest?.correct == false }
+        let fresh     = pool.filter { statsIndex[$0.id]?.isAnswered == false }
+        let done      = pool.filter { statsIndex[$0.id]?.latest?.correct == true }
+
+        let prioritized = (wrong.shuffled() + fresh.shuffled() + done.shuffled())
+        let selected = Array(prioritized.prefix(10))
+
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         activeSession = QuizSession(
             mode: .daily,
             level: selectedLevel,
             version: selectedVersion,
-            quizzes: pool.shuffled().prefix(min(10, pool.count)).map { $0 },
+            quizzes: selected,
             customTitle: "\(stat.category.displayName) 練習"
         )
     }

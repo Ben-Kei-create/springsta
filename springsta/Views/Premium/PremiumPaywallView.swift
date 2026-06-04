@@ -4,6 +4,7 @@ import SwiftUI
 struct PremiumPaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var purchase = PurchaseManager.shared
+    @State private var trialSession: QuizSession?
 
     private let freeFeatures: [(icon: String, title: String)] = [
         ("checkmark.circle.fill", "基礎トラック全問（200問以上）"),
@@ -27,6 +28,7 @@ struct PremiumPaywallView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: Spacing.lg) {
                         heroSection
+                        trialSection
                         comparisonSection
                         purchaseSection
                         footerNote
@@ -56,6 +58,65 @@ struct PremiumPaywallView: View {
         .onChange(of: purchase.isPremium) { _, isPremium in
             if isPremium { dismiss() }
         }
+        .sheet(item: $trialSession) { session in
+            QuizSheetView(session: session)
+        }
+    }
+
+    // MARK: Trial
+
+    private var trialSection: some View {
+        Button(action: startTrial) {
+            HStack(spacing: Spacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(Color.jbAccent.opacity(0.12))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(Color.jbAccent)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("実践トラックを1問だけ試す")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(Color.jbText)
+                    Text("購入前に問題の難易度と形式を体験できます")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.jbSubtext)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.jbAccent)
+            }
+            .padding(Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: Radius.md)
+                    .fill(Color.jbCard)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Radius.md)
+                            .stroke(Color.jbAccent.opacity(0.45), lineWidth: 1.5)
+                    )
+            )
+        }
+        .buttonStyle(JBScaledButtonStyle())
+    }
+
+    private func startTrial() {
+        let pool = QuestionBank.quizzes(version: .boot3, level: .practice)
+            .filter { !$0.code.isEmpty || $0.codeTabs?.isEmpty == false }
+        guard let quiz = pool.shuffled().prefix(5).randomElement() ?? pool.first else { return }
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        trialSession = QuizSession(
+            mode: .single,
+            level: .practice,
+            version: .boot3,
+            quizzes: [quiz],
+            customTitle: "実践トレイル"
+        )
     }
 
     // MARK: Hero
