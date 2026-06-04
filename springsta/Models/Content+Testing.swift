@@ -881,9 +881,7 @@ class UserServiceTest {
 mockMvc.perform(
         post("/api/users")
             .contentType(MediaType.APPLICATION_JSON)
-            .content("""
-                {"name": "", "email": "bad-email"}
-                """))
+            .content("{\\"name\\": \\"\\", \\"email\\": \\"bad-email\\"}"))
     .andExpect(status().isBadRequest())
     .andExpect(jsonPath("$.errors.name").exists())
     .andExpect(jsonPath("$.errors.email").exists());
