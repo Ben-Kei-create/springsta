@@ -1167,11 +1167,17 @@ private struct QuizSessionResultView: View {
     let correctCount: Int
     let onClose: () -> Void
 
+    @State private var progress = ProgressStore.shared
+
     private var totalCount: Int { max(session.quizzes.count, 1) }
     private var scorePercent: Int {
         Int((Double(correctCount) / Double(totalCount) * 100).rounded())
     }
     private var isPassing: Bool { scorePercent >= 70 }
+
+    private var weakestSummary: ObjectiveProgressSummary? {
+        progress.weakestObjective(version: session.version, level: session.level)
+    }
 
     var body: some View {
         ZStack {
@@ -1219,6 +1225,30 @@ private struct QuizSessionResultView: View {
                     border: isPassing ? Color.jbSuccess.opacity(0.35) : Color.jbWarning.opacity(0.35),
                     borderWidth: 1.5
                 )
+
+                if let weakest = weakestSummary {
+                    HStack(spacing: Spacing.sm) {
+                        Image(systemName: "arrow.right.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(Color.jbAccentAlt)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("次に強化したい範囲")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(Color.jbAccentAlt)
+                            Text(weakest.displayTitle)
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(Color.jbText)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                        }
+                        Spacer()
+                        Text("\(weakest.accuracyPercent)%")
+                            .font(.system(size: 16, weight: .heavy).monospacedDigit())
+                            .foregroundStyle(Color.jbAccentAlt)
+                    }
+                    .padding(Spacing.md)
+                    .jbCard(border: Color.jbAccentAlt.opacity(0.35), borderWidth: 1)
+                }
 
                 ShareLink(
                     item: SpringstaShare.practiceResult(
@@ -1322,26 +1352,37 @@ struct AdBannerView: View {
 private struct QuizStreakBanner: View {
     let count: Int
 
-    private var message: String {
+    private var tier: Int {
         switch count {
-        case 10...: return "🔥 \(count)問連続正解！完璧！"
-        case 7...: return "🔥 \(count)問連続正解！"
-        case 5...: return "🔥 \(count)問連続正解！"
-        default:   return "🔥 \(count)問連続正解！"
+        case 10...: return 3
+        case 7...:  return 2
+        case 5...:  return 1
+        default:    return 0
         }
     }
 
+    private var emoji: String   { ["🔥","🔥🔥","⚡️🔥","👑🔥"][tier] }
+    private var label: String   { ["\(count)問連続正解！","\(count)問連続正解！","\(count)問連続！すごい！","完璧！\(count)問連続！"][tier] }
+    private var fontSize: CGFloat { [14, 15, 16, 17][tier] }
+    private var accent: Color   { [Color.jbWarning, Color.jbWarning, Color.jbAccent, Color.jbSuccess][tier] }
+    private var padding: CGFloat { [Spacing.lg, Spacing.lg + 4, Spacing.lg + 8, Spacing.lg + 12][tier] }
+
     var body: some View {
-        Text(message)
-            .font(.system(size: 14, weight: .bold))
-            .foregroundStyle(Color.jbText)
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.sm)
-            .background(
-                Capsule()
-                    .fill(Color.jbWarning.opacity(0.14))
-                    .overlay(Capsule().stroke(Color.jbWarning.opacity(0.5), lineWidth: 1.5))
-            )
-            .shadow(color: Color.jbWarning.opacity(0.12), radius: 8, y: 4)
+        HStack(spacing: 6) {
+            Text(emoji)
+                .font(.system(size: fontSize + 2))
+            Text(label)
+                .font(.system(size: fontSize, weight: .bold))
+                .foregroundStyle(Color.jbText)
+        }
+        .padding(.horizontal, padding)
+        .padding(.vertical, Spacing.sm + CGFloat(tier) * 2)
+        .background(
+            Capsule()
+                .fill(accent.opacity(0.14))
+                .overlay(Capsule().stroke(accent.opacity(0.55), lineWidth: 1.5 + CGFloat(tier) * 0.5))
+        )
+        .shadow(color: accent.opacity(0.18 + Double(tier) * 0.06), radius: 8 + CGFloat(tier) * 4, y: 4)
+        .scaleEffect(1.0 + CGFloat(tier) * 0.02)
     }
 }

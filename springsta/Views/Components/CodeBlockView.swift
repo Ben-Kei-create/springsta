@@ -12,7 +12,7 @@ struct CodeBlockView: View {
     let tabs: [FileTab]
     var highlightLines: [Int] = []
     var zoom: Double = 1.0
-    var compactHeight: CGFloat = 220
+    var compactHeight: CGFloat = 280
 
     @State private var activeTabId: String
     @State private var isExpanded: Bool = false
@@ -189,7 +189,7 @@ extension CodeBlockView {
         filename: String? = nil,
         highlightLines: [Int] = [],
         zoom: Double = 1.0,
-        compactHeight: CGFloat = 220
+        compactHeight: CGFloat = 280
     ) {
         let name = filename ?? Self.deriveFilename(from: code)
         self.init(
