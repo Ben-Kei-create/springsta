@@ -33,12 +33,18 @@ struct AllQuizzesView: View {
 
     @State private var expandedCategories: Set<QuizCategory> = []
     @State private var selectedQuizIds: Set<String> = []
+    @State private var selectedDifficulty: QuizDifficulty? = nil
     @State private var progress = ProgressStore.shared
     @State private var purchase = PurchaseManager.shared
     @State private var showPaywall = false
 
-    private var quizzes: [Quiz] {
+    private var allQuizzes: [Quiz] {
         QuestionBank.quizzes(version: version, level: level)
+    }
+
+    private var quizzes: [Quiz] {
+        guard let diff = selectedDifficulty else { return allQuizzes }
+        return allQuizzes.filter { $0.difficulty == diff }
     }
 
     private var selectedQuizzes: [Quiz] {
@@ -68,6 +74,7 @@ struct AllQuizzesView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
                     summaryHeader
+                    difficultyFilterStrip
                     topActionCard
 
                     VStack(spacing: Spacing.sm) {
@@ -107,6 +114,50 @@ struct AllQuizzesView: View {
         .sheet(isPresented: $showPaywall) {
             PremiumPaywallView()
         }
+    }
+
+    private var difficultyFilterStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Spacing.xs) {
+                difficultyChip(nil, label: "すべて", count: allQuizzes.count)
+                ForEach(QuizDifficulty.allCases, id: \.self) { diff in
+                    let count = allQuizzes.filter { $0.difficulty == diff }.count
+                    if count > 0 {
+                        difficultyChip(diff, label: diff.displayName, count: count)
+                    }
+                }
+            }
+            .padding(.horizontal, Spacing.md)
+        }
+        .animation(.jbFast, value: selectedDifficulty)
+    }
+
+    private func difficultyChip(_ diff: QuizDifficulty?, label: String, count: Int) -> some View {
+        let isSelected = selectedDifficulty == diff
+        return Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            withAnimation(.jbFast) {
+                selectedDifficulty = (diff != nil && selectedDifficulty == diff) ? nil : diff
+            }
+        }) {
+            HStack(spacing: 4) {
+                Text(label)
+                    .font(.system(size: 12, weight: .bold))
+                Text("\(count)")
+                    .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(isSelected ? .white.opacity(0.8) : Color.jbSubtext)
+            }
+            .foregroundStyle(isSelected ? .white : Color.jbText)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                Capsule()
+                    .fill(isSelected ? Color.jbAccent : Color.jbCard)
+                    .overlay(Capsule().stroke(isSelected ? Color.jbAccent.opacity(0.45) : Color.jbBorder, lineWidth: 1))
+            )
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: selectedDifficulty)
     }
 
     private var summaryHeader: some View {

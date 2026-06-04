@@ -16,13 +16,8 @@ struct QuizView: View {
     var body: some View {
         ZStack {
             Color.jbBackground.ignoresSafeArea()
-
             GeometryReader { proxy in
-                ScrollView {
-                    contentLayout(size: proxy.size)
-                        .padding(Spacing.md)
-                        .animation(.jbSpring, value: vm.isAnswered)
-                }
+                layout(size: proxy.size)
             }
         }
         .sheet(item: $activeIssueReport) { report in
@@ -32,30 +27,62 @@ struct QuizView: View {
         }
     }
 
-    @ViewBuilder
-    private func contentLayout(size: CGSize) -> some View {
-        if shouldUseSplitLayout(size) {
-            HStack(alignment: .top, spacing: Spacing.md) {
-                codeBlock(compactHeight: splitCodeHeight(for: size))
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
+    private var hasCode: Bool {
+        !vm.quiz.code.isEmpty || vm.quiz.codeTabs?.isEmpty == false
+    }
 
+    @ViewBuilder
+    private func layout(size: CGSize) -> some View {
+        if shouldUseSplitLayout(size) {
+            // Landscape: side-by-side
+            ScrollView {
+                HStack(alignment: .top, spacing: Spacing.md) {
+                    codeBlock(compactHeight: splitCodeHeight(for: size))
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                    VStack(alignment: .leading, spacing: Spacing.lg) {
+                        questionSection
+                        choicesSection
+                        choicesHintSection
+                        answeredResultSection
+                        Spacer(minLength: Spacing.xl)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                }
+                .padding(Spacing.md)
+                .animation(.jbSpring, value: vm.isAnswered)
+            }
+        } else if hasCode {
+            // Portrait with code: sticky code header, scrollable choices
+            VStack(spacing: 0) {
+                codeBlock()
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.top, Spacing.md)
+                    .padding(.bottom, Spacing.sm)
+                Divider().background(Color.jbBorder)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: Spacing.lg) {
+                        questionSection
+                        choicesSection
+                        choicesHintSection
+                        answeredResultSection
+                        Spacer(minLength: Spacing.xxl)
+                    }
+                    .padding(Spacing.md)
+                    .animation(.jbSpring, value: vm.isAnswered)
+                }
+            }
+        } else {
+            // Portrait without code
+            ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
                     questionSection
                     choicesSection
                     choicesHintSection
                     answeredResultSection
-                    Spacer(minLength: Spacing.xl)
+                    Spacer(minLength: Spacing.xxl)
                 }
-                .frame(maxWidth: .infinity, alignment: .topLeading)
-            }
-        } else {
-            VStack(alignment: .leading, spacing: Spacing.lg) {
-                codeBlock()
-                questionSection
-                choicesSection
-                choicesHintSection
-                answeredResultSection
-                Spacer(minLength: Spacing.xxl)
+                .padding(Spacing.md)
+                .animation(.jbSpring, value: vm.isAnswered)
             }
         }
     }

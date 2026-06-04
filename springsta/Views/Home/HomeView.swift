@@ -366,18 +366,33 @@ struct HomeView: View {
 
     private var categoryProgressSection: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            SectionHeader(icon: "square.grid.2x2", title: "カテゴリ別進捗", tint: Color.jbAccent)
+            SectionHeader(icon: "square.grid.2x2", title: "カテゴリ別進捗", tint: Color.jbAccent,
+                          subtitle: "タップで即練習")
             let stats = computeCategoryStats()
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Spacing.sm) {
                     ForEach(stats, id: \.category.rawValue) { stat in
-                        CategoryProgressChip(stat: stat)
+                        CategoryProgressChip(stat: stat, onTap: { startCategorySession(stat) })
                     }
                 }
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, 2)
             }
         }
+    }
+
+    private func startCategorySession(_ stat: CategoryStat) {
+        let pool = QuestionBank.quizzes(version: selectedVersion, level: selectedLevel)
+            .filter { $0.canonicalCategory == stat.category }
+        guard !pool.isEmpty else { return }
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        activeSession = QuizSession(
+            mode: .daily,
+            level: selectedLevel,
+            version: selectedVersion,
+            quizzes: pool.shuffled().prefix(min(10, pool.count)).map { $0 },
+            customTitle: "\(stat.category.displayName) 練習"
+        )
     }
 
     private var accuracyColor: Color {
@@ -424,6 +439,7 @@ private struct SectionHeader: View {
 
 private struct CategoryProgressChip: View {
     let stat: HomeView.CategoryStat
+    let onTap: () -> Void
 
     private var progressColor: Color {
         if stat.progress >= 0.8 { return Color.jbSuccess }
@@ -432,41 +448,50 @@ private struct CategoryProgressChip: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(stat.category.displayName)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Color.jbText)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.jbBorder)
-                        .frame(height: 3)
-                    Capsule()
-                        .fill(progressColor)
-                        .frame(width: geo.size.width * stat.progress, height: 3)
-                        .animation(.jbSmooth, value: stat.progress)
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 3) {
+                    Text(stat.category.displayName)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.jbText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                    Spacer(minLength: 0)
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 7, weight: .bold))
+                        .foregroundStyle(progressColor.opacity(0.7))
                 }
-            }
-            .frame(height: 3)
 
-            Text("\(stat.answered)/\(stat.total)問")
-                .font(.system(size: 10).monospacedDigit())
-                .foregroundStyle(Color.jbSubtext)
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.jbBorder)
+                            .frame(height: 3)
+                        Capsule()
+                            .fill(progressColor)
+                            .frame(width: geo.size.width * stat.progress, height: 3)
+                            .animation(.jbSmooth, value: stat.progress)
+                    }
+                }
+                .frame(height: 3)
+
+                Text("\(stat.answered)/\(stat.total)問")
+                    .font(.system(size: 10).monospacedDigit())
+                    .foregroundStyle(Color.jbSubtext)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .frame(width: 108)
+            .background(
+                RoundedRectangle(cornerRadius: Radius.sm)
+                    .fill(Color.jbCard)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Radius.sm)
+                            .stroke(stat.progress > 0 ? progressColor.opacity(0.45) : Color.jbBorder, lineWidth: 1)
+                    )
+            )
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .frame(width: 108)
-        .background(
-            RoundedRectangle(cornerRadius: Radius.sm)
-                .fill(Color.jbCard)
-                .overlay(
-                    RoundedRectangle(cornerRadius: Radius.sm)
-                        .stroke(stat.progress > 0 ? progressColor.opacity(0.45) : Color.jbBorder, lineWidth: 1)
-                )
-        )
+        .buttonStyle(JBScaledButtonStyle(scaleAmount: 0.95))
     }
 }
 
@@ -949,6 +974,8 @@ struct QuizSheetView: View {
     @State private var activeExplanation: Explanation?
     @State private var glossaryRoot: GlossaryRoot? = nil
     @State private var glossaryPath: [String] = []
+    @State private var consecutiveCorrect = 0
+    @State private var showStreakBanner = false
     @AppStorage("codeZoom") private var codeZoom: Double = CodeZoom.default
     @Environment(\.dismiss) private var dismiss
 
@@ -1034,6 +1061,35 @@ struct QuizSheetView: View {
         }
         .fullScreenCover(item: $activeExplanation) { explanation in
             ExplanationView(explanation: explanation, level: currentQuiz.level, onDismiss: { activeExplanation = nil })
+        }
+        .onChange(of: quizVM.isAnswered) { _, isAnswered in
+            guard isAnswered, session.mode != .mockExam else { return }
+            updateStreak(correct: quizVM.isCorrect)
+        }
+        .overlay(alignment: .top) {
+            if showStreakBanner {
+                QuizStreakBanner(count: consecutiveCorrect)
+                    .padding(.top, 60)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: showStreakBanner)
+    }
+
+    private func updateStreak(correct: Bool) {
+        if correct {
+            consecutiveCorrect += 1
+            let milestones = [3, 5, 7, 10]
+            if milestones.contains(consecutiveCorrect) {
+                showStreakBanner = true
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(1.8))
+                    showStreakBanner = false
+                }
+            }
+        } else {
+            consecutiveCorrect = 0
         }
     }
 
@@ -1258,5 +1314,34 @@ struct AdBannerView: View {
                 .foregroundStyle(Color.jbBorder),
             alignment: .top
         )
+    }
+}
+
+// MARK: - QuizStreakBanner
+
+private struct QuizStreakBanner: View {
+    let count: Int
+
+    private var message: String {
+        switch count {
+        case 10...: return "🔥 \(count)問連続正解！完璧！"
+        case 7...: return "🔥 \(count)問連続正解！"
+        case 5...: return "🔥 \(count)問連続正解！"
+        default:   return "🔥 \(count)問連続正解！"
+        }
+    }
+
+    var body: some View {
+        Text(message)
+            .font(.system(size: 14, weight: .bold))
+            .foregroundStyle(Color.jbText)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.sm)
+            .background(
+                Capsule()
+                    .fill(Color.jbWarning.opacity(0.14))
+                    .overlay(Capsule().stroke(Color.jbWarning.opacity(0.5), lineWidth: 1.5))
+            )
+            .shadow(color: Color.jbWarning.opacity(0.12), radius: 8, y: 4)
     }
 }
