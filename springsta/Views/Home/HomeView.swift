@@ -343,7 +343,7 @@ struct HomeView: View {
         }
     }
 
-    private struct CategoryStat {
+    fileprivate struct CategoryStat {
         let category: QuizCategory
         let answered: Int
         let total: Int
@@ -355,7 +355,7 @@ struct HomeView: View {
         let byCategory = Dictionary(grouping: allQuizzes) { $0.category }
         var answeredByCategory: [String: Set<String>] = [:]
         for record in progress.answerHistory where record.level == selectedLevel {
-            answeredByCategory[record.category, default: []].insert(record.quizId)
+            answeredByCategory[record.category.rawValue, default: []].insert(record.quizId)
         }
         return QuizCategory.allCases.compactMap { cat in
             guard let quizzes = byCategory[cat], !quizzes.isEmpty else { return nil }
