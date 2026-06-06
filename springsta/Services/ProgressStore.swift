@@ -184,9 +184,12 @@ final class ProgressStore {
                 )
             )
 
-            reviewQueueQuizIds.removeAll { $0 == quiz.id }
-            if !answer.correct && !quiz.isMockExamOnly {
-                reviewQueueQuizIds.append(quiz.id)
+            if quiz.isMockExamOnly {
+                // Mock-exam-only quizzes never enter the review queue; clear any stale SR entry
+                reviewQueueQuizIds.removeAll { $0 == quiz.id }
+                srSchedule.removeValue(forKey: quiz.id)
+            } else {
+                updateSRSchedule(quizId: quiz.id, correct: answer.correct)
             }
         }
 
@@ -203,6 +206,7 @@ final class ProgressStore {
         defaults.set(dailyHistory, forKey: Key.dailyHistory)
         defaults.set(reviewQueueQuizIds, forKey: Key.reviewQueueQuizIds)
         saveAnswerHistory()
+        saveSRSchedule()
         saveMockExamAttempts()
     }
 
