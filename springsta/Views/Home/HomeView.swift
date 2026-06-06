@@ -355,10 +355,10 @@ struct HomeView: View {
         let byCategory = Dictionary(grouping: allQuizzes) { $0.category }
         var answeredByCategory: [String: Set<String>] = [:]
         for record in progress.answerHistory where record.level == selectedLevel {
-            answeredByCategory[record.category.rawValue, default: []].insert(record.quizId)
+            answeredByCategory[record.category, default: []].insert(record.quizId)
         }
         return QuizCategory.allCases.compactMap { cat in
-            guard let quizzes = byCategory[cat], !quizzes.isEmpty else { return nil }
+            guard let quizzes = byCategory[cat.rawValue], !quizzes.isEmpty else { return nil }
             let answered = answeredByCategory[cat.rawValue]?.count ?? 0
             return CategoryStat(category: cat, answered: answered, total: quizzes.count)
         }
