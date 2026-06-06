@@ -25,9 +25,18 @@ final class ProgressStore {
         static let completedLessons  = "progress.completedLessons" // [String]
         static let dailyHistory      = "progress.dailyHistory"     // [yyyy-MM-dd: Int]
         static let reviewQueueQuizIds = "progress.reviewQueueQuizIds" // [String]
+        static let srSchedule        = "progress.srSchedule"       // [String: SREntry] JSON
         static let answerHistory     = "progress.answerHistory"    // [QuizAnswerRecord]
         static let bookmarkedQuizzes = "progress.bookmarkedQuizzes"
         static let mockExamAttempts  = "progress.mockExamAttempts"  // [MockExamAttempt]
+    }
+
+    // 3-stage fixed interval: wrong→0d, correct×1→1d, correct×2→3d, correct×3→graduated
+    private static let srIntervals: [TimeInterval] = [0, 86_400, 259_200, 604_800]
+
+    private struct SREntry: Codable {
+        var stage: Int
+        var nextDue: Date
     }
 
     /// 保持する履歴日数（ヒートマップ用）
@@ -43,8 +52,19 @@ final class ProgressStore {
     var completedLessons: Set<String>
     /// "yyyy-MM-dd" -> その日の回答数
     var dailyHistory: [String: Int]
-    /// 復習対象の問題ID（誤答で追加、正答で取り除く）
+    /// 復習対象の問題ID（誤答で追加、スケジュールに従い卒業で取り除く）
     var reviewQueueQuizIds: [String]
+    private var srSchedule: [String: SREntry]
+
+    /// nextDue <= now の問題IDだけを返す（本日の復習対象）
+    var dueReviewQuizIds: [String] {
+        let now = Date()
+        return reviewQueueQuizIds.filter { id in
+            guard let entry = srSchedule[id] else { return true }
+            return entry.nextDue <= now
+        }
+    }
+
     var answerHistory: [QuizAnswerRecord]
     var bookmarkedQuizIds: Set<String>
     var mockExamAttempts: [MockExamAttempt]
@@ -78,6 +98,7 @@ final class ProgressStore {
         if storedReviewQueue != reviewQueueQuizIds {
             defaults.set(reviewQueueQuizIds, forKey: Key.reviewQueueQuizIds)
         }
+        self.srSchedule = Self.loadSRSchedule(from: defaults)
     }
 
     // MARK: API
@@ -101,12 +122,9 @@ final class ProgressStore {
         defaults.set(dailyHistory,   forKey: Key.dailyHistory)
 
         if !quizId.isEmpty {
-            // removeAll で既存エントリを除いてから必要なら末尾へ追加するため重複は生じない
-            reviewQueueQuizIds.removeAll { $0 == quizId }
-            if !correct {
-                reviewQueueQuizIds.append(quizId)
-            }
+            updateSRSchedule(quizId: quizId, correct: correct)
             defaults.set(reviewQueueQuizIds, forKey: Key.reviewQueueQuizIds)
+            saveSRSchedule()
         }
     }
 
@@ -358,6 +376,7 @@ final class ProgressStore {
         completedLessons = []
         dailyHistory = [:]
         reviewQueueQuizIds = []
+        srSchedule = [:]
         answerHistory = []
         bookmarkedQuizIds = []
         mockExamAttempts = []
@@ -370,6 +389,7 @@ final class ProgressStore {
         defaults.removeObject(forKey: Key.completedLessons)
         defaults.removeObject(forKey: Key.dailyHistory)
         defaults.removeObject(forKey: Key.reviewQueueQuizIds)
+        defaults.removeObject(forKey: Key.srSchedule)
         defaults.removeObject(forKey: Key.answerHistory)
         defaults.removeObject(forKey: Key.bookmarkedQuizzes)
         defaults.removeObject(forKey: Key.mockExamAttempts)
@@ -475,5 +495,43 @@ final class ProgressStore {
     private static func prune(_ history: [String: Int], windowDays: Int) -> [String: Int] {
         let keep = Set(lastDateKeys(days: windowDays))
         return history.filter { keep.contains($0.key) }
+    }
+
+    // MARK: SR helpers
+
+    /// 正誤に応じてSRスケジュールとreviewQueueを更新する
+    private func updateSRSchedule(quizId: String, correct: Bool) {
+        reviewQueueQuizIds.removeAll { $0 == quizId }
+
+        if correct {
+            if var entry = srSchedule[quizId] {
+                entry.stage += 1
+                if entry.stage >= Self.srIntervals.count - 1 {
+                    // 卒業: キューから完全除去
+                    srSchedule.removeValue(forKey: quizId)
+                } else {
+                    entry.nextDue = Date().addingTimeInterval(Self.srIntervals[entry.stage])
+                    srSchedule[quizId] = entry
+                    reviewQueueQuizIds.append(quizId)
+                }
+            }
+            // キュー未登録の問題を正解してもスケジュール不要
+        } else {
+            let entry = SREntry(stage: 0, nextDue: Date())
+            srSchedule[quizId] = entry
+            reviewQueueQuizIds.append(quizId)
+        }
+    }
+
+    private func saveSRSchedule() {
+        guard let data = try? JSONEncoder().encode(srSchedule) else { return }
+        defaults.set(data, forKey: Key.srSchedule)
+    }
+
+    private static func loadSRSchedule(from defaults: UserDefaults) -> [String: SREntry] {
+        guard let data = defaults.data(forKey: Key.srSchedule),
+              let schedule = try? JSONDecoder().decode([String: SREntry].self, from: data)
+        else { return [:] }
+        return schedule
     }
 }

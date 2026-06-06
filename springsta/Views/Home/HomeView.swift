@@ -23,7 +23,7 @@ struct HomeView: View {
 
     private var reviewQueueQuizzes: [Quiz] {
         var seen = Set<String>()
-        return progress.reviewQueueQuizIds.compactMap { id in
+        return progress.dueReviewQuizIds.compactMap { id in
             guard seen.insert(id).inserted else { return nil }
             return QuestionBank.quiz(id: id)
         }
@@ -314,7 +314,11 @@ struct HomeView: View {
     // MARK: Home sections
 
     private var visibleSectionOrder: [HomeSectionID] {
-        HomeSectionID.fixedOrder
+        var order = HomeSectionID.fixedOrder
+        if !reviewQueueQuizzes.isEmpty {
+            order.insert(.reviewQueue, at: 1)
+        }
+        return order
     }
 
     @ViewBuilder
@@ -328,6 +332,8 @@ struct HomeView: View {
             ActivityHeatmapView(
                 counts: progress.recentDailyCounts(days: ProgressStore.historyWindowDays)
             )
+        case .reviewQueue:
+            reviewQueueSection
         case .practiceModes:
             practiceModesSection
         case .levelSection:
@@ -509,11 +515,13 @@ private struct CategoryProgressChip: View {
 
 enum HomeSectionID: String, CaseIterable, Hashable {
     case commandCenter
+    case reviewQueue      // inserted dynamically when due items exist
     case categoryProgress
     case heatmap
     case practiceModes
     case levelSection
 
+    // reviewQueue is NOT in fixedOrder; inserted by visibleSectionOrder when due
     static let fixedOrder: [HomeSectionID] = [
         .commandCenter,
         .categoryProgress,
@@ -524,11 +532,12 @@ enum HomeSectionID: String, CaseIterable, Hashable {
 
     var displayTitle: String {
         switch self {
-        case .commandCenter: return "ステータス"
+        case .commandCenter:    return "ステータス"
+        case .reviewQueue:      return "本日の復習"
         case .categoryProgress: return "カテゴリ別進捗"
-        case .heatmap: return "学習マップ"
-        case .practiceModes: return "練習を開始"
-        case .levelSection: return "問題リスト"
+        case .heatmap:          return "学習マップ"
+        case .practiceModes:    return "練習を開始"
+        case .levelSection:     return "問題リスト"
         }
     }
 }

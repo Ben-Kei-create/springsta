@@ -230,19 +230,16 @@ private struct ExpandedCodeView: View {
     }
 
     var body: some View {
-        ZStack {
-            Color.jbBackground.ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                topBar
-                Divider().background(Color.jbBorder)
-                tabBar
-                Divider().background(Color.jbBorder)
-                CodePanelView(code: activeCode, highlightLines: highlightLines, zoom: zoom)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .background(Color.jbBackground)
-            }
+        VStack(spacing: 0) {
+            topBar
+            Divider().background(Color.jbBorder)
+            tabBar
+            Divider().background(Color.jbBorder)
+            CodePanelView(code: activeCode, highlightLines: highlightLines, zoom: zoom)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color.jbBackground.ignoresSafeArea())
         .preferredColorScheme(.dark)
     }
 
