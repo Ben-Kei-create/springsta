@@ -194,6 +194,73 @@ struct LearningHomeView: View {
             levelContextCard(for: level, completed: completedCount, total: total, progress: progressRatio)
                 .padding(.horizontal, Spacing.md)
 
+            if level == .foundation {
+                textbookPathSection(lessons: lessons)
+            } else {
+                lessonListSection(lessons: lessons)
+            }
+        }
+    }
+
+    // MARK: Lesson lists
+
+    private func lessonListSection(lessons: [Lesson]) -> some View {
+        VStack(spacing: Spacing.sm) {
+            ForEach(lessons) { lesson in
+                LessonRowView(
+                    lesson: lesson,
+                    isCompleted: progress.completedLessons.contains(lesson.id),
+                    onTap: { selectedLesson = lesson }
+                )
+            }
+        }
+        .padding(.horizontal, Spacing.md)
+    }
+
+    private func textbookPathSection(lessons: [Lesson]) -> some View {
+        let lessonsById = Dictionary(uniqueKeysWithValues: lessons.map { ($0.id, $0) })
+        let chapters: [(chapter: LessonChapter, lessons: [Lesson])] = LessonChapter.textbookPath.map { chapter in
+            (chapter, chapter.lessonIds.compactMap { lessonsById[$0] })
+        }
+        let coveredIds = Set(chapters.flatMap { $0.lessons.map(\.id) })
+        let otherLessons = lessons.filter { !coveredIds.contains($0.id) }
+
+        return VStack(alignment: .leading, spacing: Spacing.lg) {
+            ForEach(chapters, id: \.chapter.number) { entry in
+                if !entry.lessons.isEmpty {
+                    chapterSection(chapter: entry.chapter, lessons: entry.lessons)
+                }
+            }
+
+            if !otherLessons.isEmpty {
+                otherLessonsSection(lessons: otherLessons)
+            }
+        }
+    }
+
+    private func chapterSection(chapter: LessonChapter, lessons: [Lesson]) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            ChapterHeaderView(chapter: chapter)
+                .padding(.horizontal, Spacing.md)
+            VStack(spacing: Spacing.sm) {
+                ForEach(lessons) { lesson in
+                    LessonRowView(
+                        lesson: lesson,
+                        isCompleted: progress.completedLessons.contains(lesson.id),
+                        onTap: { selectedLesson = lesson }
+                    )
+                }
+            }
+            .padding(.horizontal, Spacing.md)
+        }
+    }
+
+    private func otherLessonsSection(lessons: [Lesson]) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            Text("その他のレッスン")
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(Color.jbText)
+                .padding(.horizontal, Spacing.md)
             VStack(spacing: Spacing.sm) {
                 ForEach(lessons) { lesson in
                     LessonRowView(
@@ -255,6 +322,22 @@ struct LearningHomeView: View {
 
 /// NavigationStack の navigationDestination キー用。
 struct GlossaryListRoute: Hashable {}
+
+// MARK: - ChapterHeaderView
+
+struct ChapterHeaderView: View {
+    let chapter: LessonChapter
+
+    var body: some View {
+        HStack {
+            Text(chapter.displayTitle)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(Color.jbText)
+            Spacer()
+        }
+        .padding(.top, Spacing.xs)
+    }
+}
 
 // MARK: - LessonRowView
 
