@@ -4,11 +4,12 @@ import SwiftUI
 
 /// フルスクリーンオンボーディング（初回起動時のみ表示）
 ///
-/// 4ページ構成:
-///   1. Welcome   — アプリの価値訴求
-///   2. Track     — 基礎 / 実践 選択
-///   3. Goal      — 1日の目標問題数
-///   4. Ready     — 設定サマリーと開始ボタン
+/// 5ページ構成:
+///   1. Welcome    — アプリの価値訴求
+///   2. Experience — Javaの経験年数（設定保存のみ、挙動は変えない）
+///   3. Track      — 基礎 / 実践 選択
+///   4. Goal       — 1日の目標問題数
+///   5. Ready      — 設定サマリーと開始ボタン
 ///
 /// 完了時に `AppStorage("hasCompletedOnboarding")` を `true` に設定し、
 /// `SpringstaApp` の `.fullScreenCover` を閉じる。
@@ -16,10 +17,14 @@ struct OnboardingView: View {
     @AppStorage("hasCompletedOnboarding")  var hasCompleted = false
     @AppStorage("selectedSpringTrack")  var selectedLevelRaw = SpringTrack.foundation.rawValue
     @AppStorage("selectedSpringBootVersion") var selectedVersionRaw = SpringBootVersion.boot3.rawValue
+    @AppStorage("javaExperience") var javaExperience: String = ""
     @State private var page: Int = 0
 
     // Proxy for ProgressStore dailyGoal — we write via ProgressStore.shared
     @State private var selectedGoal: Int = 5
+
+    // Proxy for javaExperience AppStorage — selection UI binding
+    @State private var selectedExperience: String = ""
 
     private var selectedLevel: SpringTrack {
         SpringTrack(rawValue: selectedLevelRaw) ?? .foundation
@@ -37,9 +42,10 @@ struct OnboardingView: View {
                 // Paged content
                 TabView(selection: $page) {
                     welcomePage.tag(0)
-                    levelPage.tag(1)
-                    goalPage.tag(2)
-                    readyPage.tag(3)
+                    experiencePage.tag(1)
+                    levelPage.tag(2)
+                    goalPage.tag(3)
+                    readyPage.tag(4)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(.jbSmooth, value: page)
@@ -48,6 +54,7 @@ struct OnboardingView: View {
         .onAppear {
             // Spring Boot 3.x を既定に固定
             selectedVersionRaw = SpringBootVersion.boot3.rawValue
+            selectedExperience = javaExperience
         }
     }
 
@@ -55,7 +62,7 @@ struct OnboardingView: View {
 
     private var pageIndicator: some View {
         HStack(spacing: 6) {
-            ForEach(0..<4) { i in
+            ForEach(0..<5) { i in
                 Capsule()
                     .fill(i == page ? Color.jbAccent : Color.jbBorder)
                     .frame(width: i == page ? 20 : 6, height: 6)
@@ -123,14 +130,45 @@ struct OnboardingView: View {
         .padding(.bottom, Spacing.xxl)
     }
 
-    // MARK: - Page 2: Level
+    // MARK: - Page 2: Java experience
+
+    private var experiencePage: some View {
+        VStack(spacing: Spacing.xxl) {
+            Spacer()
+
+            VStack(spacing: Spacing.md) {
+                pageTitle(number: 1, title: "Javaの経験年数は？")
+                Text("学習内容の参考にします")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.jbSubtext)
+            }
+
+            VStack(spacing: Spacing.sm) {
+                experienceRow(value: "under6Months", label: "6ヶ月未満")
+                experienceRow(value: "oneToTwoYears", label: "1〜2年")
+                experienceRow(value: "threeYearsOrMore", label: "3年以上")
+            }
+            .padding(.horizontal, Spacing.lg)
+
+            Spacer()
+
+            nextButton(label: "次へ") {
+                javaExperience = selectedExperience
+                advance()
+            }
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.bottom, Spacing.xxl)
+    }
+
+    // MARK: - Page 3: Level
 
     private var levelPage: some View {
         VStack(spacing: Spacing.xxl) {
             Spacer()
 
             VStack(spacing: Spacing.md) {
-                pageTitle(number: 1, title: "学習トラックを選んでください")
+                pageTitle(number: 2, title: "学習トラックを選んでください")
                 Text("いつでも設定から変更できます")
                     .font(.system(size: 14))
                     .foregroundStyle(Color.jbSubtext)
@@ -160,14 +198,14 @@ struct OnboardingView: View {
         .padding(.bottom, Spacing.xxl)
     }
 
-    // MARK: - Page 3: Daily goal
+    // MARK: - Page 4: Daily goal
 
     private var goalPage: some View {
         VStack(spacing: Spacing.xxl) {
             Spacer()
 
             VStack(spacing: Spacing.md) {
-                pageTitle(number: 2, title: "1日の目標問題数")
+                pageTitle(number: 3, title: "1日の目標問題数")
                 Text("毎日コツコツが習得への近道")
                     .font(.system(size: 14))
                     .foregroundStyle(Color.jbSubtext)
@@ -191,7 +229,7 @@ struct OnboardingView: View {
         .padding(.bottom, Spacing.xxl)
     }
 
-    // MARK: - Page 4: Ready
+    // MARK: - Page 5: Ready
 
     @State private var notifications = NotificationManager.shared
 
@@ -407,6 +445,39 @@ struct OnboardingView: View {
         .animation(.jbFast, value: selectedGoal)
     }
 
+    private func experienceRow(value: String, label: String) -> some View {
+        let selected = selectedExperience == value
+        return Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            selectedExperience = value
+        }) {
+            HStack(spacing: Spacing.md) {
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20))
+                    .foregroundStyle(selected ? Color.jbAccent : Color.jbSubtext)
+                    .frame(width: 28)
+
+                Text(label)
+                    .font(.system(size: 16, weight: selected ? .semibold : .regular))
+                    .foregroundStyle(selected ? Color.jbText : Color.jbSubtext)
+
+                Spacer()
+            }
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: Radius.md)
+                    .fill(selected ? Color.jbAccent.opacity(0.08) : Color.jbCard)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Radius.md)
+                            .stroke(selected ? Color.jbAccent.opacity(0.5) : Color.jbBorder, lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(JBScaledButtonStyle(scaleAmount: 0.97))
+        .animation(.jbFast, value: selectedExperience)
+    }
+
     private func summaryRow(icon: String, label: String, value: String) -> some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: icon)
@@ -449,7 +520,7 @@ struct OnboardingView: View {
 
     private func advance() {
         withAnimation(.jbSmooth) {
-            page = min(page + 1, 3)
+            page = min(page + 1, 4)
         }
     }
 }
