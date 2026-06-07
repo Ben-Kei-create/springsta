@@ -999,7 +999,7 @@ interface OrderRepository extends JpaRepository<Order, Long> {}
 }
 
 extension Lesson {
-    static let samples: [Lesson] = [
+    static let samples: [Lesson] = javaPrerequisiteLessons + [
         bootApplicationBasics,
         dependencyInjection,
         restController,
