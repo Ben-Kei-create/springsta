@@ -10,6 +10,9 @@ struct SettingsView: View {
     @AppStorage(CodeSyntaxTheme.storageKey) private var codeSyntaxThemeRaw: String = CodeSyntaxTheme.classic.rawValue
     @AppStorage("examDateTimestamp") private var examDateTimestamp: Double = 0
     @State private var showResetConfirm = false
+    @State private var csvExportURL: URL?
+    @State private var showCSVShareSheet = false
+    @State private var showEmptyHistoryAlert = false
     @State private var showExamDatePicker = false
     @State private var showExamClearConfirm = false
     @State private var showNotificationTimePicker = false
@@ -130,15 +133,28 @@ struct SettingsView: View {
 
                     // MARK: データ
                     section(title: "データ") {
-                        SettingRow(
-                            icon: "arrow.counterclockwise",
-                            title: "学習進捗をリセット",
-                            isDestructive: true,
-                            onTap: {
-                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                showResetConfirm = true
-                            }
-                        )
+                        VStack(spacing: 0) {
+                            SettingRow(
+                                icon: "square.and.arrow.up.on.square",
+                                title: "学習履歴をCSVで書き出す",
+                                onTap: {
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    exportAnswerHistoryCSV()
+                                }
+                            )
+                            Divider()
+                                .background(Color.jbBorder)
+                                .padding(.horizontal, Spacing.md)
+                            SettingRow(
+                                icon: "arrow.counterclockwise",
+                                title: "学習進捗をリセット",
+                                isDestructive: true,
+                                onTap: {
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    showResetConfirm = true
+                                }
+                            )
+                        }
                     }
 
 #if DEBUG
@@ -336,6 +352,16 @@ struct SettingsView: View {
             }
         } message: {
             Text("正答数・連続日数・完了レッスンがすべて消去されます。")
+        }
+        .alert("書き出せる学習履歴がありません", isPresented: $showEmptyHistoryAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("クイズに解答すると、その履歴をCSVで書き出せるようになります。")
+        }
+        .sheet(isPresented: $showCSVShareSheet) {
+            if let csvExportURL {
+                ShareSheet(activityItems: [csvExportURL])
+            }
         }
     }
 
@@ -674,6 +700,18 @@ struct SettingsView: View {
         }
     }
 
+    // MARK: - CSV export
+
+    private func exportAnswerHistoryCSV() {
+        guard !progress.answerHistory.isEmpty else {
+            showEmptyHistoryAlert = true
+            return
+        }
+        guard let url = SpringstaShare.writeAnswerHistoryCSVFile(progress.answerHistory) else { return }
+        csvExportURL = url
+        showCSVShareSheet = true
+    }
+
     // MARK: - Goal row
 
     private func goalRow(_ goal: Int) -> some View {
@@ -802,6 +840,16 @@ struct SettingNavigationRow: View {
         .padding(.vertical, 12)
         .background(Color.jbCard)
     }
+}
+
+private struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 private struct CodeSyntaxThemeButton: View {

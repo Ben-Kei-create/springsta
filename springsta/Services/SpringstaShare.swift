@@ -22,6 +22,43 @@ Springstaで\(level.displayName)トラックを学習。
 """
     }
 
+    static func answerHistoryCSV(_ records: [QuizAnswerRecord]) -> String {
+        let formatter = ISO8601DateFormatter()
+        var rows = ["id,answeredAt,level,category,quizId,tags,selectedChoiceId,correct,elapsedSeconds"]
+        for record in records {
+            let columns = [
+                record.id.uuidString,
+                formatter.string(from: record.answeredAt),
+                record.level.rawValue,
+                record.category,
+                record.quizId,
+                record.tags.joined(separator: ";"),
+                record.selectedChoiceId,
+                record.correct ? "1" : "0",
+                record.elapsedSeconds.map(String.init) ?? ""
+            ]
+            rows.append(columns.map(csvField).joined(separator: ","))
+        }
+        return "\u{FEFF}" + rows.joined(separator: "\r\n")
+    }
+
+    static func writeAnswerHistoryCSVFile(_ records: [QuizAnswerRecord]) -> URL? {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("springsta-answer-history.csv")
+        do {
+            try answerHistoryCSV(records).write(to: url, atomically: true, encoding: .utf8)
+            return url
+        } catch {
+            return nil
+        }
+    }
+
+    private static func csvField(_ value: String) -> String {
+        guard value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r") else {
+            return value
+        }
+        return "\"" + value.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+    }
+
     static func mockExamResult(
         level: SpringTrack,
         version: SpringBootVersion,
