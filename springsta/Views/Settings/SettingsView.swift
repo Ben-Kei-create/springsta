@@ -240,7 +240,7 @@ struct SettingsView: View {
                                 SettingRow(
                                     icon: "bolt.fill",
                                     title: "プレミアムにアップグレード",
-                                    value: store.product?.displayPrice ?? "¥980",
+                                    value: store.product?.displayPrice ?? AppConfig.premiumFallbackPriceText,
                                     tint: Color.jbAccent,
                                     onTap: { Task { await store.purchase() } }
                                 )

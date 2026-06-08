@@ -52,9 +52,11 @@ struct HomeView: View {
                         .padding(.bottom, Spacing.lg)
                     }
 
+#if DEBUG
                     if !purchase.effectiveIsPremium {
                         AdBannerView()
                     }
+#endif
                 }
             }
             .navigationBarHidden(true)

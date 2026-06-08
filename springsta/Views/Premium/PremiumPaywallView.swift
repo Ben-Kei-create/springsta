@@ -228,7 +228,7 @@ struct PremiumPaywallView: View {
     private var purchaseSection: some View {
         VStack(spacing: Spacing.sm) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(purchase.product?.displayPrice ?? "¥900")
+                Text(purchase.product?.displayPrice ?? AppConfig.premiumFallbackPriceText)
                     .font(.system(size: 36, weight: .heavy).monospacedDigit())
                     .foregroundStyle(Color.jbAccent)
                 Text("買い切り")

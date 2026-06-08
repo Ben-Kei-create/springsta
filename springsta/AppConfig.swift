@@ -11,6 +11,13 @@ enum AppConfig {
     /// Developer contact email — used in feedback mailto links.
     static let supportEmail = "fsmall.worldm@gmail.com"
 
+    // MARK: - Premium
+
+    /// Fallback price text shown only while `Product.displayPrice` hasn't loaded yet
+    /// (e.g. StoreKit fetch in progress or offline). The real price always comes
+    /// from App Store Connect via `PurchaseManager.product?.displayPrice`.
+    static let premiumFallbackPriceText = "¥980"
+
     // MARK: - App Store
 
     /// App Store numeric identifier (replace with actual ID after first submission).
